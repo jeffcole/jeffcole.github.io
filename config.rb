@@ -23,6 +23,8 @@ end
 activate :deploy do |deploy|
   deploy.build_before = true
   deploy.deploy_method = :git
+  deploy.branch = "master"
+  deploy.commit_message = ":shipit:"
 end
 
 activate :blog do |blog|
