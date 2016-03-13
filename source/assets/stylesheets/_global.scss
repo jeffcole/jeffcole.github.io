@@ -1,19 +1,28 @@
 body {
-  background-color: $light-gray;
-  color: $medium-gray;
+  @include outer-container;
 }
 
-.delete-me {
-  align-items: center;
-  display: flex;
-  justify-content: center;
-  height: 100vh;
+header,
+main,
+footer {
+  @include span-columns(6);
+  @include shift(3)
+}
 
-  .container {
-    text-align: center;
+header,
+footer {
+  text-align: center;
+}
 
-    h1 {
-      font-weight: 200;
+li {
+  @include media($medium-screen-up) {
+    h2 {
+      @include span-columns(4 of 6);
+    }
+    span {
+      @include span-columns(2 of 6);
+
+      text-align: right;
     }
   }
 }
