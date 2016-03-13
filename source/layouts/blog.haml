@@ -1,0 +1,6 @@
+= wrap_layout :application do
+  %article
+    %h2= current_article.title
+    %p.posted-date= current_article.date.strftime("%B %e, %Y")
+
+    = yield
