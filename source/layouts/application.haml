@@ -9,20 +9,21 @@
 
     %link{href:'//fonts.googleapis.com/css?family=PT+Sans:400,700,400italic,700italic', rel: 'stylesheet', type: 'text/css'}
     %link{href:'//fonts.googleapis.com/css?family=Titillium+Web:400,400italic,600italic,600,700,700italic,900,300italic,300,200italic,200', rel: 'stylesheet', type: 'text/css'}
-    
+
     = stylesheet_link_tag "application"
     = feed_tag :atom, "#{blog.options.prefix.to_s}/feed.xml", title: "Atom Feed"
 
-  %body{class: page_classes}
-    %header
-      %h1
-        = link_to "Things Jeff Cole Wrote", "/"
+  %body{class: "#{page_classes}"}
+    %section.type-system-sans
+      %header
+        %h1.type
+          = link_to "Things Jeff Cole Wrote", "/"
 
-    %main{:role => "main"}
-      = yield
+      %main{:role => "main"}
+        = yield
 
-    %footer
-      = "© #{Date.today.year} Jeff Cole"
+      %footer
+        %p.author= "© #{Date.today.year} Jeff Cole"
 
     = javascript_include_tag "https://code.jquery.com/jquery-2.1.1.min.js"
     = javascript_include_tag "application"

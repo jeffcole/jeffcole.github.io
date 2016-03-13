@@ -1,28 +1,50 @@
-body {
-  @include outer-container;
+section {
+  margin-left: 3em;
+  margin-right: 3em;
+
+  @include media($large-screen-up) {
+    margin-left: auto;
+    margin-right: auto;
+    max-width: 36em;
+  }
 }
 
-header,
-main,
-footer {
-  @include span-columns(6);
-  @include shift(3)
+header {
+  margin-top: 4em;
 }
 
-header,
-footer {
-  text-align: center;
+.type-system-sans .type {
+  font-size: 0.9em;
 }
 
 li {
-  @include media($medium-screen-up) {
+  p {
+    display: none;
+  }
+
+  @include media($large-screen-up) {
     h2 {
       @include span-columns(4 of 6);
     }
-    span {
+    p {
       @include span-columns(2 of 6);
 
       text-align: right;
     }
   }
+}
+
+.share  {
+  img,
+  span  {
+    vertical-align: middle;
+  }
+
+  span  {
+    margin-left: 0.2em;
+  }
+}
+
+footer {
+  clear: both;
 }

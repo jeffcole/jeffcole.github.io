@@ -3,4 +3,4 @@
     %li
       = link_to article do
         %h2= article.title
-        %span= article.date.strftime("%B %e, %Y")
+        %p.date= article.date.strftime("%B %e, %Y")
