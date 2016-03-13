@@ -6,6 +6,10 @@
     %meta{name: "viewport", content: "width=device-width, initial-scale=1"}
     %title
       Jeff Cole Wrote#{" - " + current_article.title unless current_article.nil?}
+
+    %link{href:'//fonts.googleapis.com/css?family=PT+Sans:400,700,400italic,700italic', rel: 'stylesheet', type: 'text/css'}
+    %link{href:'//fonts.googleapis.com/css?family=Titillium+Web:400,400italic,600italic,600,700,700italic,900,300italic,300,200italic,200', rel: 'stylesheet', type: 'text/css'}
+    
     = stylesheet_link_tag "application"
     = feed_tag :atom, "#{blog.options.prefix.to_s}/feed.xml", title: "Atom Feed"
 
