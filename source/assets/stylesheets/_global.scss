@@ -27,6 +27,8 @@ li {
   }
 
   @include media($large-screen-up) {
+    @include clearfix;
+
     h2 {
       @include span-columns(4 of 6);
     }
