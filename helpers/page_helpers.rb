@@ -12,4 +12,14 @@ module PageHelpers
       default_title
     end
   end
+
+  def meta_description
+    current_page.data.meta_description.presence ||
+      data.defaults.metadata.description
+  end
+
+  def meta_keywords
+    current_page.data.meta_keywords.presence ||
+      data.defaults.metadata.keywords
+  end
 end
