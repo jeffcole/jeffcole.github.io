@@ -4,8 +4,8 @@
     %meta{charset: "utf-8"}
     %meta{content: "IE=edge,chrome=1", http: {equiv: "X-UA-Compatible"}}
     %meta{name: "viewport", content: "width=device-width, initial-scale=1"}
-    %title
-      Jeff Cole Wrote#{" - " + current_article.title unless current_article.nil?}
+    %title= page_title
+    %link{rel: "canonical", href: absolute_url}
 
     %link{href:'//fonts.googleapis.com/css?family=PT+Sans:400,700,400italic,700italic', rel: 'stylesheet', type: 'text/css'}
     %link{href:'//fonts.googleapis.com/css?family=Titillium+Web:400,400italic,600italic,600,700,700italic,900,300italic,300,200italic,200', rel: 'stylesheet', type: 'text/css'}

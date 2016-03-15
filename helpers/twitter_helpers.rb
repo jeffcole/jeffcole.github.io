@@ -1,6 +1,6 @@
 module TwitterHelpers
-  def twitter_share_link(page)
-    url = TwitterUrl.new(page, config).to_s
+  def twitter_share_link(title)
+    url = TwitterUrl.new(title, absolute_url).to_s
 
     link_to url, target: "_blank" do
       image_tag("/assets/images/icons/twitter.svg") +
@@ -11,7 +11,7 @@ module TwitterHelpers
   private
 
   class TwitterUrl
-    attr_private_initialize :page, :config
+    attr_private_initialize :title, :absolute_url
 
     def to_s
       [base_url, query].join
@@ -28,11 +28,7 @@ module TwitterHelpers
     end
 
     def status
-      "Read '#{page.title}' #{handle} #{page_absolute_url}"
-    end
-
-    def page_absolute_url
-      config.site.host + page.url
+      "Read '#{title}' #{handle} #{absolute_url}"
     end
 
     def handle
