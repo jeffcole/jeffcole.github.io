@@ -17,6 +17,10 @@ header {
   font-size: 0.9em;
 }
 
+main {
+  margin-bottom: 1.5em;
+}
+
 li {
   p {
     display: none;
@@ -43,8 +47,4 @@ li {
   span  {
     margin-left: 0.2em;
   }
-}
-
-footer {
-  clear: both;
 }

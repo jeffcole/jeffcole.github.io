@@ -15,10 +15,18 @@ page "/*.txt", layout: false
 
 configure :development do
   activate :livereload
+
+  config[:site] = OpenStruct.new(
+    host: "http://localhost:4567"
+  ).freeze
 end
 
 configure :build do
   activate :relative_assets
+
+  config[:site] = OpenStruct.new(
+    host: "https://jeffcole.github.io"
+  ).freeze
 end
 
 activate :deploy do |deploy|
