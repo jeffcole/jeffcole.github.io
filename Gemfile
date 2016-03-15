@@ -2,10 +2,6 @@
 # the following line to use "http://"
 source "https://rubygems.org"
 
-# Uncomment these gems if you are using Windows
-# gem "wdm", "~> 0.1.0", platforms: [:mswin, :mingw]
-# gem "tzinfo-data", platforms: [:mswin, :mingw, :jruby]
-
 gem "attr_extras"
 gem "bourbon", "~> 4.2"
 gem "builder", "~> 3.0"
