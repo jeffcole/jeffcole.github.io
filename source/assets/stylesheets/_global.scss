@@ -14,6 +14,19 @@ section {
   font-size: 0.9em;
 }
 
+nav ul {
+  margin-bottom: $base-spacing;
+
+  li {
+    display: inline-block;
+    margin-right: $small-spacing;
+
+    @include media($medium-screen-up) {
+      margin-right: $base-spacing;
+    }
+  }
+}
+
 main {
   margin-bottom: $base-spacing;
 }
@@ -37,7 +50,9 @@ main {
   }
 }
 
-.share  {
+.type-system-sans h3.share  {
+  margin-bottom: $base-spacing;
+
   img,
   span  {
     vertical-align: middle;

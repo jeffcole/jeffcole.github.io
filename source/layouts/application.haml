@@ -23,8 +23,9 @@
   %body{class: "#{page_classes}"}
     %section.type-system-sans
       %header
-        %h1.type
-          = link_to "Things Jeff Cole Wrote", "/"
+        %h1.type Things Jeff Cole Wrote
+
+      = partial "nav"
 
       %main{:role => "main"}
         = yield
