@@ -22,4 +22,8 @@ module PageHelpers
     current_page.data.meta_keywords.presence ||
       data.defaults.metadata.keywords
   end
+
+  def root?
+    current_page.url == "/"
+  end
 end

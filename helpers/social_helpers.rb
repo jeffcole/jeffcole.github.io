@@ -1,4 +1,8 @@
-module TwitterHelpers
+module SocialHelpers
+  def open_graph_type
+    root? ? "profile" : "article"
+  end
+
   def twitter_share_link(title)
     url = TwitterUrl.new(title, absolute_url).to_s
 
