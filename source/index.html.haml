@@ -1,6 +1,3 @@
 %ul.articles
-  - page_articles.each do |article|
-    %li
-      = link_to article do
-        %h2= article.title
-        %p.date= article.date.strftime("%B %e, %Y")
+  - index_items.each do |article|
+    %li= title_and_date_link article

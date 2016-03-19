@@ -1,0 +1,12 @@
+repositories:
+  date: '2016-02-05'
+  title: 'The Quest for Simple Active Record Repositories'
+  url: 'https://www.foraker.com/blog/the-quest-for-simple-active-record-repositories'
+ddd:
+  date: '2015-07-24'
+  title: 'Domain-Driven Design'
+  url: 'https://www.foraker.com/blog/domain-driven-design'
+dotfiles:
+  date: '2015-03-06'
+  title: 'Get Your Dotfiles Under Control'
+  url: 'https://www.foraker.com/blog/get-your-dotfiles-under-control'
