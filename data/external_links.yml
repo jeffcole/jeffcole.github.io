@@ -1,3 +1,7 @@
+chrome_extensions:
+  date: '2016-05-16'
+  title: 'Making Chrome Extensions is Easy with Yeoman'
+  url: 'https://www.foraker.com/blog/making-chrome-extensions-with-yeoman'
 repositories:
   date: '2016-02-05'
   title: 'The Quest for Simple Active Record Repositories'
