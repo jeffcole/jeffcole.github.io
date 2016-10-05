@@ -7,7 +7,7 @@
     %p.date
       = current_article.date.strftime("%B %e, %Y")
 
-    = yield
+    ~ yield
 
     %h3.share= twitter_share_link(current_article.title)
 
