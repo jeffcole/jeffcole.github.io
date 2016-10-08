@@ -11,7 +11,7 @@ section {
 }
 
 .type-system-sans .type {
-  font-size: 0.9em;
+  font-size: $base-font-size * 1.25;
 }
 
 nav ul {
@@ -50,7 +50,7 @@ main {
   }
 }
 
-.type-system-sans h4.share  {
+.type-system-sans p.share  {
   margin-bottom: $base-spacing * 2;
 
   img,

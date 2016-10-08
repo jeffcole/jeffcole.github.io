@@ -10,7 +10,7 @@ module SocialHelpers
 
     link_to url, target: "_blank" do
       image_tag("/assets/images/icons/twitter.svg") +
-        content_tag(:span) { "Tweet this" }
+        content_tag(:span) { "Tweet This" }
     end
   end
 end
