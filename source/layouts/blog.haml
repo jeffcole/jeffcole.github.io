@@ -2,13 +2,11 @@
   %article
     %h1= current_article.title
 
-    %h3.share= twitter_share_link(current_article.title)
-
     %p.date
       = current_article.date.strftime("%B %e, %Y")
 
     ~ yield
 
-    %h3.share= twitter_share_link(current_article.title)
+    %h4.share= twitter_share_link(current_article.title)
 
   = partial "nav"
