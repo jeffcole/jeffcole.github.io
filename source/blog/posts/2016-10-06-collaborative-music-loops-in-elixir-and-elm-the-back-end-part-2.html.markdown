@@ -236,7 +236,7 @@ Our server now has all the functionality we need to support multiple clients, an
 
 ## Up Next
 
-If you've noticed the several differences between the listings in the last two posts and the linked source, you've had a peek at changes made to support testing. Elixir promotes treating our tests like any other clients of our production code, and that's what we'll explore in the next post.
+If you've noticed the several differences between the listings in the last two posts and the linked source, you've had a peek at changes made to support testing. Elixir promotes treating our tests like any other clients of our production code, and that's what we'll explore in the [next post].
 
 
 [previous post]: ./2016-10-05-collaborative-music-loops-in-elixir-and-elm-the-back-end-part-1.html
@@ -247,3 +247,4 @@ If you've noticed the several differences between the listings in the last two p
 [JamBalancer test]: https://github.com/jeffcole/loops_with_friends/blob/back-end-blog-posts/test/lib/loops_with_friends/jam_balancer/server_test.exs
 [JamCollection  source]: https://github.com/jeffcole/loops_with_friends/blob/back-end-blog-posts/lib/loops_with_friends/jam_collection/collection.ex
 [JamCollection test]: https://github.com/jeffcole/loops_with_friends/blob/back-end-blog-posts/test/lib/loops_with_friends/jam_collection/collection_test.exs
+[next post]: ./2016-10-12-collaborative-music-loops-in-elixir-and-elm-healthy-elixir-tests.html
