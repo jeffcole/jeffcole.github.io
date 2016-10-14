@@ -23,12 +23,11 @@
   %body{class: "#{page_classes}"}
     = partial "nav"
 
-    %section.type-system-sans
-      %main{:role => "main"}
-        = yield
+    %main.type-system-sans{:role => "main"}
+      = yield
 
-      %footer
-        %p= "© #{Date.today.year} Jeff Cole"
+    %footer
+      %p= "© #{Date.today.year} Jeff Cole"
 
     = javascript_include_tag "https://code.jquery.com/jquery-2.1.1.min.js"
     = javascript_include_tag "application"

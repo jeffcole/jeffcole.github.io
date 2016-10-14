@@ -1,17 +1,12 @@
-section {
-  margin-top: $base-spacing;
-  margin-left: $base-spacing;
-  margin-right: $base-spacing;
+main {
+  margin: $base-spacing;
+  margin-bottom: $base-spacing * 2;
 
   @include media($medium-screen-up) {
     margin-left: auto;
     margin-right: auto;
     max-width: 37.5em;
   }
-}
-
-main {
-  margin: ($base-spacing * 2) 0;
 }
 
 .articles {
@@ -33,9 +28,7 @@ main {
   }
 }
 
-.type-system-sans p.share  {
-  margin-bottom: $base-spacing * 2;
-
+.share  {
   img,
   span  {
     vertical-align: middle;
@@ -52,4 +45,8 @@ main {
   font-size: 0.9em;
   font-style: normal;
   padding: 0.1em 0.4em;
+}
+
+footer p {
+  margin-left: $base-spacing;
 }
