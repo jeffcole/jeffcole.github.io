@@ -36,6 +36,8 @@ GEM
     fastimage (2.0.0)
       addressable (~> 2)
     ffi (1.9.14)
+    font-awesome-middleman (4.2.1)
+      middleman-core (>= 3.0.0)
     haml (4.0.7)
       tilt
     hamster (3.0.0)
@@ -158,6 +160,7 @@ DEPENDENCIES
   attr_extras
   bourbon (~> 4.2)
   builder (~> 3.0)
+  font-awesome-middleman
   middleman (~> 4.0)
   middleman-autoprefixer (~> 2.6)
   middleman-blog
