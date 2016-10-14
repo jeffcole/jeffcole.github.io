@@ -21,13 +21,16 @@
     = feed_tag :atom, "#{blog.options.prefix.to_s}/feed.xml", title: "Atom Feed"
 
   %body{class: "#{page_classes}"}
-    = partial "nav"
+    .wrapper-for-content-outside-of-footer
+      = partial "nav"
 
-    %main.type-system-sans{:role => "main"}
-      = yield
+      %main.type-system-sans{:role => "main"}
+        = yield
 
-    %footer
-      %p= "© #{Date.today.year} Jeff Cole"
+    %footer.footer-2{role: "contentinfo"}
+      %ul
+        %li
+          %span= "© #{Date.today.year} Jeff Cole"
 
     = javascript_include_tag "https://code.jquery.com/jquery-2.1.1.min.js"
     = javascript_include_tag "application"
