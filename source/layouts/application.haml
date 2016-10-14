@@ -21,12 +21,9 @@
     = feed_tag :atom, "#{blog.options.prefix.to_s}/feed.xml", title: "Atom Feed"
 
   %body{class: "#{page_classes}"}
+    = partial "nav"
+
     %section.type-system-sans
-      %header
-        %h1.type Things Jeff Cole Wrote
-
-      = partial "nav"
-
       %main{:role => "main"}
         = yield
 

@@ -10,25 +10,8 @@ section {
   }
 }
 
-.type-system-sans .type {
-  font-size: $base-font-size * 1.25;
-}
-
-nav ul {
-  margin-bottom: $base-spacing;
-
-  li {
-    display: inline-block;
-    margin-right: $small-spacing;
-
-    @include media($medium-screen-up) {
-      margin-right: $base-spacing;
-    }
-  }
-}
-
 main {
-  margin-bottom: $base-spacing;
+  margin: ($base-spacing * 2) 0;
 }
 
 .articles {
