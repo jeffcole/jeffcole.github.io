@@ -1,4 +1,3 @@
-activate :directory_indexes
 activate :autoprefixer
 activate :pry
 activate :syntax
@@ -38,12 +37,11 @@ activate :deploy do |deploy|
 end
 
 activate :blog do |blog|
-  # This will add a prefix to all links, template references and source paths
-  blog.prefix = "blog"
-
   # Matcher for blog source files
   blog.sources = "posts/{year}-{month}-{day}-{title}.html"
 
-  blog.layout = "blog"
+  blog.layout = "posts"
   blog.permalink = "{title}.html"
 end
+
+activate :directory_indexes

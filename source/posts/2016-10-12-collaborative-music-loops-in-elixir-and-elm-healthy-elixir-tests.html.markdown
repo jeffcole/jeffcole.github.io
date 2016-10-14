@@ -87,6 +87,7 @@ The same scenario is possible in the functional world — the only difference is
 
 José Valim wrote an excellent post called [Mocks and Explicit Contracts] on how we can introduce new modules into our applications for the purposes of clarifying our code's responsibilities and isolating our tests.
 
+> #### You put a mock in my stub!
 > José's use of the term "mock" deviates a bit from Martin Fowler's [delineation][Mocks Aren't Stubs] of the differences between "mocks" and "stubs," in that to me, his usage appears closer to what Martin refers to a "stub." I find Martin's breakdown helpful, so although José calls them "mocks," I'll refer to these entities as "stubs."
 
 In our application, we can use José's technique to isolate the `JamChannelTest` from the implementation of the `JamBalancer`, a module upon which the channel depends. First, we'll place our balancer implementation in a submodule called [`JamBalancer.Server`] (so named as an allusion to the fact that our balancer's `Agent` is a `GenServer` under the covers). Then we'll create another module, [`JamBalancer.Stub`], where we'll put the code that we want our [`JamChannelTest`] to run whenever it needs balancer functionality.
@@ -164,7 +165,10 @@ If you are familiar with testing object-oriented applications, in this situation
 
 Brian Cardarella proposes a solution in [this post][Testing Function Delegation], where he notes that in Elixir, we can verify our function delegation easily by sending messages between processes.
 
+> #### You put a mock in my stub! (continued)
 > Although the title of Brian's post is "Testing function delegation in Elixir without stubbing," I would argue that here again there might be a confusion of terms. I believe that Brian is doing essentially the opposite of what José did above, by using the term "stubbing" where it might be better to use "mocking." I would indeed call the modules that he constructs in his tests "stubs."
+>
+> Also at play here is the distinction that José makes in his post between using these terms as nouns versus using them as verbs, where his preference lies strongly with the former. Brian's test modules are being used as nouns rather than verbs, so I believe that José would approve.
 >
 > These are my interpretations of José's and Brian's usage as seen through the lens of Martin Fowler's [definitions][Mocks Aren't Stubs], which are the most clear that I have found. When José and Brian take issue with stubbing and mocking, I believe that they are taking issue with the practice of using a library to obfuscate what in Elixir are simple tasks: dependency injection and message passing, respectively.
 
@@ -215,7 +219,7 @@ You might notice in the [`ServerTest`][JamBalancer.ServerTest] that for some tes
 
 The techniques outlined here have made building and testing the back end for Loops With Friends in Elixir a fun and rewarding experience. We've learned how to keep our tests on equal footing with our production code, how to isolate our tests from the dependencies of the function under test, and how to test function delegation in a simple way without increasing coupling.
 
-Our back end done for now, so coming up next, we'll look at the wonders that Elm brings to the front end.
+Our back end is done for now, so coming up next, we'll look at the wonders that Elm brings to the front end.
 
 
 [first post]: ./2016-10-05-collaborative-music-loops-in-elixir-and-elm-the-back-end-part-1.html
