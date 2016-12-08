@@ -1,0 +1,7 @@
+intro_to_phoenix:
+  title: 'Intro to Phoenix'
+  occurrences:
+    - date: '2016-12-06'
+      event: 'Boulder Elixir Meetup'
+      venue: 'MojoTech'
+      slides_url: 'https://docs.google.com/presentation/d/1C3yGW34D0VnPv9gHQXfVZ19WhImg9OOQEHDUVlks9po'

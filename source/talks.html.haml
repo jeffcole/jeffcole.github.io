@@ -1,0 +1,18 @@
+---
+title: "Talks"
+---
+
+
+%h1 Talks
+
+%ul
+  - talks.each do |talk|
+    %li
+      %h2= talk.title
+      - talk.occurrences.each do |occurrence|
+        %p.date= long_date(occurrence.date)
+        %h3= occurrence.event
+        %h4= occurrence.venue
+        %div= link_to "Slides", occurrence.slides_url
+        - if occurrence.video_url
+          %div= link_to "Video", occurrence.video_url

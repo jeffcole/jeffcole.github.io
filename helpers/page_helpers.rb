@@ -12,8 +12,12 @@ module PageHelpers
 
     link_to link do
       content_tag(:h2) { article.title } +
-        content_tag(:p, class: :date) { article.date.strftime("%B %e, %Y") }
+        content_tag(:p, class: :date) { long_date(article.date) }
     end
+  end
+
+  def long_date(date)
+    date.strftime("%B %e, %Y")
   end
 
   def absolute_url
