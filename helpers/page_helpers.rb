@@ -23,8 +23,8 @@ module PageHelpers
   def page_title
     default_title = data.defaults.page_title
 
-    if current_page.try(:title).present?
-      "#{default_title} - #{current_page.title}"
+    if current_page.data.try(:title).present?
+      "#{default_title} - #{current_page.data.title}"
     else
       default_title
     end
