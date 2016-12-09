@@ -10,8 +10,14 @@ main {
 }
 
 .articles {
-  p {
-    display: none;
+
+  li {
+    overflow: hidden;
+    margin-bottom: $base-spacing * 1.25;
+  }
+
+  h2 {
+    margin: 0;
   }
 
   @include media($large-screen-up) {
@@ -20,6 +26,7 @@ main {
     h2 {
       @include span-columns(4 of 6);
     }
+
     p {
       @include span-columns(2 of 6);
 
@@ -30,7 +37,7 @@ main {
 
 .talks main {
   h2 {
-    margin-bottom: $base-spacing * 0.5;
+    margin-bottom: $small-spacing;
   }
 
   li {
