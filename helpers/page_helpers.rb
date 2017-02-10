@@ -11,7 +11,7 @@ module PageHelpers
     link = article.try(:external?) ? article.url : article
 
     link_to link do
-      content_tag(:h2) { article.title } +
+      content_tag(:h3) { article.title } +
         content_tag(:p, class: :date) { long_date(article.date) }
     end
   end

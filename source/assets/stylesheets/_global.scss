@@ -24,7 +24,7 @@ main {
       @include span-columns(4 of 6);
     }
 
-    p {
+    .date {
       @include span-columns(2 of 6);
 
       text-align: right;
