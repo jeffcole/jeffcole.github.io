@@ -10,17 +10,21 @@ main {
 }
 
 .index main {
+  .intro {
+    text-align: center;
+  }
+
   li {
     overflow: hidden;
     margin-bottom: $base-spacing * 1.25;
   }
 
-  h2 {
+  h3 {
     margin: 0;
   }
 
   @include media($large-screen-up) {
-    h2 {
+    h3 {
       @include span-columns(4 of 6);
     }
 
