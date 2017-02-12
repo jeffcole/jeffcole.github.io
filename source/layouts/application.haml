@@ -14,13 +14,14 @@
     %title= page_title
     %link{rel: "canonical", href: absolute_url}
 
-    %link{href: data.defaults.pt_sans_font_url, rel: 'stylesheet', type: 'text/css'}
-    %link{href: data.defaults.titillium_font_url, rel: 'stylesheet', type: 'text/css'}
+    %link{href: data.defaults.lusitana_font_url, rel: 'stylesheet', type: 'text/css'}
+    %link{href: data.defaults.merriweather_font_url, rel: 'stylesheet', type: 'text/css'}
+    %link{href: data.defaults.merriweather_sans_font_url, rel: 'stylesheet', type: 'text/css'}
 
     = stylesheet_link_tag "application"
     = feed_tag :atom, "#{blog.options.prefix.to_s}/feed.xml", title: "Atom Feed"
 
-  %body.type-system-sans{class: "#{page_classes}"}
+  %body.type-system-serif{class: "#{page_classes}"}
     %header
       %a{href: "/", title: "Home"}
         %i.fa.fa-home
@@ -29,7 +30,7 @@
       = yield
 
     %footer
-      %a{href: "/", title: "Home"} Home
+      %a.home{href: "/", title: "Home"} Home
 
       %p= partial :contact
 

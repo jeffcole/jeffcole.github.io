@@ -3,5 +3,6 @@ metadata:
   keywords: 'jeff cole'
 page_title: 'Jeff Cole'
 gravatar_url: 'http://gravatar.com/avatar/b510f21d7375664c0425d07417016afd.jpg'
-pt_sans_font_url: '//fonts.googleapis.com/css?family=PT+Sans:400,700,400italic,700italic'
-titillium_font_url: '//fonts.googleapis.com/css?family=Titillium+Web:400,400italic,600italic,600,700,700italic,900,300italic,300,200italic,200'
+lusitana_font_url: '//fonts.googleapis.com/css?family=Lusitana:400,700'
+merriweather_font_url: '//fonts.googleapis.com/css?family=Merriweather:400,300,300italic,400italic,700,700italic,900,900italic'
+merriweather_sans_font_url: '//fonts.googleapis.com/css?family=Merriweather+Sans:400,300,300italic,400italic,700italic,700,800,800italic'
