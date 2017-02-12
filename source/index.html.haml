@@ -21,3 +21,9 @@ title: "Home"
 %ul
   - index_items.each do |article|
     %li= title_and_date_link article
+
+%h2 Talks
+
+%ul
+  - talks.each do |talk|
+    = partial :talk, locals: {talk: talk}
