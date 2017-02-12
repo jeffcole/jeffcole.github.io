@@ -20,10 +20,12 @@
     = stylesheet_link_tag "application"
     = feed_tag :atom, "#{blog.options.prefix.to_s}/feed.xml", title: "Atom Feed"
 
-  %body{class: "#{page_classes}"}
-    %header.navigation= partial "nav"
+  %body.type-system-sans{class: "#{page_classes}"}
+    %header
+      %a{href: "/", title: "Home"}
+        %i.fa.fa-home
 
-    %main.type-system-sans{:role => "main"}
+    %main
       = yield
 
     %footer

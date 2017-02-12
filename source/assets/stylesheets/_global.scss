@@ -1,3 +1,8 @@
+header {
+  float: left;
+  padding-left: 1em;
+}
+
 main {
   margin: $base-spacing;
   margin-bottom: $base-spacing * 2;
@@ -9,11 +14,12 @@ main {
   }
 }
 
-.index main {
-  .intro {
-    text-align: center;
-  }
+.intro,
+footer {
+  text-align: center;
+}
 
+.posts {
   li {
     overflow: hidden;
     margin-bottom: $base-spacing * 1.25;
