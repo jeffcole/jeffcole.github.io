@@ -81,6 +81,14 @@
     margin-bottom: 0.4em;
   }
 
+  h4 {
+    font-family: $serif;
+    font-size: 1.1em;
+    font-weight: 400;
+    line-height: 1.2em;
+    margin-bottom: 0.3em;
+  }
+
   p.date {
     color: transparentize($base-font-color, 0.6);
     font-family: $serif-2;
