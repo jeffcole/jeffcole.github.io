@@ -9,13 +9,9 @@ title: "Home"
     - index_items.each do |article|
       %li= title_and_date_link article
 
-  %hr
-
 %section.talks
   %h2 Talks
 
   %ul
     - talks.each do |talk|
       = partial :talk, locals: {talk: talk}
-
-  %hr
