@@ -1,6 +1,6 @@
 header {
-  float: left;
-  padding-left: 1em;
+  float: right;
+  padding-right: 1.4em;
 }
 
 main {
@@ -17,6 +17,10 @@ main {
 .intro,
 footer {
   text-align: center;
+
+  .tagline {
+    margin-bottom: $small-spacing ;
+  }
 }
 
 .posts {
