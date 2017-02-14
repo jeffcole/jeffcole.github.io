@@ -23,9 +23,13 @@ footer {
   }
 }
 
-.fa-github,
-.fa-linkedin-square {
-  margin-right: 0.5em;
+.contact {
+  margin-bottom: $base-spacing * 2;
+
+  .fa-github,
+  .fa-linkedin-square {
+    margin-right: 0.5em;
+  }
 }
 
 .posts {

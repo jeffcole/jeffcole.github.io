@@ -32,14 +32,14 @@
 
         %h3.tagline I build things with computers, for people.
 
-        %p= partial :contact
+        = partial :contact
 
       = yield
 
     %footer
       %a.home{href: "/", title: "Home"} Home
 
-      %p= partial :contact
+      = partial :contact
 
       %span= "© #{Date.today.year} Jeff Cole"
 
