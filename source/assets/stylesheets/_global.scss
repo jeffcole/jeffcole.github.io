@@ -14,8 +14,7 @@ main {
   }
 }
 
-.intro,
-footer {
+.intro {
   text-align: center;
 
   .tagline {
@@ -72,4 +71,13 @@ footer {
   font-size: 0.9em;
   font-style: normal;
   padding: 0.1em 0.4em;
+}
+
+footer {
+  margin-bottom: $base-spacing * 2;
+  text-align: center;
+
+  .home {
+    margin-bottom: $base-spacing * 2;
+  }
 }
