@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset='utf-8'>
+    <meta content='IE=edge,chrome=1' http-equiv='X-UA-Compatible'>
+    <meta content='width=device-width, initial-scale=1' name='viewport'>
+    <meta content='I write about building things.' name='description'>
+    <meta content='jeff cole' name='keywords'>
+    <meta content='Jeff Cole - Collaborative Music Loops in Elixir and Elm: Healthy Elixir Tests' property='og:title'>
+    <meta content='article' property='og:type'>
+    <meta content='http://gravatar.com/avatar/b510f21d7375664c0425d07417016afd.jpg' property='og:image'>
+    <meta content='https://jeffcole.github.io/collaborative-music-loops-in-elixir-and-elm-healthy-elixir-tests/' property='og:url'>
+    <title>Jeff Cole - Collaborative Music Loops in Elixir and Elm: Healthy Elixir Tests</title>
+    <link href='https://jeffcole.github.io/collaborative-music-loops-in-elixir-and-elm-healthy-elixir-tests/' rel='canonical'>
+    <link href='//fonts.googleapis.com/css?family=Lusitana:400,700' rel='stylesheet' type='text/css'>
+    <link href='//fonts.googleapis.com/css?family=Merriweather:400,300,300italic,400italic,700,700italic,900,900italic' rel='stylesheet' type='text/css'>
+    <link href='//fonts.googleapis.com/css?family=Merriweather+Sans:400,300,300italic,400italic,700italic,700,800,800italic' rel='stylesheet' type='text/css'>
+    <link href="../assets/stylesheets/application.css" rel="stylesheet" />
+    <link rel="alternate" type="application/atom+xml" title="Atom Feed" href="/feed.xml" />
+  </head>
+  <body class='collaborative-music-loops-in-elixir-and-elm-healthy-elixir-tests collaborative-music-loops-in-elixir-and-elm-healthy-elixir-tests_index type-system-serif'>
+    <header>
+      <a href='/' title='Home'>
+        <i class='fa fa-2x fa-home'></i>
+      </a>
+    </header>
+    <main>
+      <section class='intro'>
+        <h1>Jeff Cole</h1>
+        <h3 class='tagline'>
+          <span>I build things with computers,</span>
+          <span>for people.</span>
+        </h3>
+        <p class='contact'>
+          <a href="https://github.com/jeffcole"><i class='fa fa-fw fa-2x fa-github' title='GitHub'></i>
+          </a>
+          <a href="https://www.linkedin.com/in/jeffreydcole"><i class='fa fa-fw fa-2x fa-linkedin' title='LinkedIn'></i>
+          </a>
+          <a href="https://twitter.com/obscurehobo"><i class='fa fa-fw fa-2x fa-twitter' title='Twitter'></i>
+          </a>
+          <a href="mailto:jeffreydonaldcole@gmail.com"><i class='fa fa-fw fa-2x fa-envelope' title='Email'></i>
+          </a>
+        </p>
+      </section>
+      <article>
+        <h1>Collaborative Music Loops in Elixir and Elm: Healthy Elixir Tests</h1>
+        <p class='date'>
+          October 12, 2016
+        </p>
+        <p>In the <a href="../collaborative-music-loops-in-elixir-and-elm-the-back-end-part-1/">first post</a> of this series we introduced the <a href="http://loopswithfriends.com/">Loops With Friends</a> app, and implemented channel joining, presence tracking, loop cycling, and event broadcasting with Elixir and Phoenix. In the <a href="../collaborative-music-loops-in-elixir-and-elm-the-back-end-part-2/">second post</a>, we added jam balancing by leveraging an Elixir agent. Please see those posts to learn more about those topics.</p>
+        
+        <p>This post will look at how the functional nature of Elixir makes applications written in it a joy to test. Elixir ships with the unit testing framework <a href="http://elixir-lang.org/docs/stable/ex_unit/ExUnit.html">ExUnit</a>, which provides great testing support out of the box. We'll start with a brief look at testing Phoenix's abstractions around sockets and channels, and then move on to some techniques for building and maintaining a healthy test suite in Elixir.</p>
+        
+        <h2 id="testing-phoenix-sockets-and-channels">Testing Phoenix Sockets and Channels</h2>
+        
+        <p>Along with the code to support channel implementation, Phoenix also ships with code to make testing sockets and channels straightforward. This code lives in the <code>Phoenix.ChannelTest</code> module. The way that we take advantage of it is to <code>use</code> it in a module of our own, and then use <em>that</em> module in our actual test module. Note that this process is analogous to how we implemented presence in the <a href="../collaborative-music-loops-in-elixir-and-elm-the-back-end-part-1/">first post</a>.</p>
+        
+        <p>Specifically, we <code>use Phoenix.ChannelTest</code> in our <code>LoopsWithFriends</code> submodule <code>ChannelCase</code>, and then <code>use LoopsWithFriends.ChannelCase</code> in both of our <code>UserSocketTest</code> and <code>JamChannelTest</code> modules. Once we've done so, we have access to all of the functions and macros that <a href="https://hexdocs.pm/phoenix/Phoenix.ChannelTest.html"><code>Phoenix.ChannelTest</code></a> provides. For instance, in <a href="https://github.com/jeffcole/loops_with_friends/blob/back-end-blog-posts/test/channels/user_socket_test.exs"><code>UserSocketTest</code></a>, we use the <code>connect</code> macro to initialize a socket that we can then assert against.</p>
+        
+        <pre class="highlight elixir"><code><span class="c1"># test/channels/user_socket_test.exs</span>&#x000A;<span class="k">defmodule</span> <span class="no">LoopsWithFriends</span><span class="o">.</span><span class="no">UserSocketTest</span> <span class="k">do</span>&#x000A;  <span class="kn">use</span> <span class="no">LoopsWithFriends</span><span class="o">.</span><span class="no">ChannelCase</span><span class="p">,</span> <span class="ss">async:</span> <span class="no">true</span>&#x000A;&#x000A;  <span class="n">alias</span> <span class="no">LoopsWithFriends</span><span class="o">.</span><span class="no">UserSocket</span>&#x000A;&#x000A;  <span class="n">test</span> <span class="sd">"</span><span class="s2">`connect` assigns a UUID"</span> <span class="k">do</span>&#x000A;    <span class="n">assert</span> <span class="p">{</span><span class="ss">:ok</span><span class="p">,</span> <span class="n">socket</span><span class="p">}</span> <span class="o">=</span> <span class="n">connect</span><span class="p">(</span><span class="no">UserSocket</span><span class="p">,</span> <span class="p">%{})</span>&#x000A;&#x000A;    <span class="c1"># Ensure a valid UUID</span>&#x000A;    <span class="n">assert</span> <span class="no">UUID</span><span class="o">.</span><span class="n">info!</span><span class="p">(</span><span class="n">socket</span><span class="o">.</span><span class="n">assigns</span><span class="o">.</span><span class="n">user_id</span><span class="p">)</span>&#x000A;  <span class="k">end</span>&#x000A;<span class="k">end</span>&#x000A;</code></pre>
+        <blockquote>
+          <p>The <code>async: true</code> on the <code>use</code> line lets ExUnit know that the tests in this module are safe to run asynchronously, which is a huge workflow boon for anyone familiar with slow test suites.</p>
+        </blockquote>
+        
+        <p>The tests in <a href="https://github.com/jeffcole/loops_with_friends/blob/back-end-blog-posts/test/channels/jam_channel_test.exs"><code>JamChannelTest</code></a> similarly take advantage of Phoenix test functions and macros such as <code>subscribe_and_join</code>, <code>push</code>, <code>assert_push</code>, <code>refute_push</code>, and <code>assert_broadcast</code>.</p>
+        
+        <h2 id="injecting-agent-names">Injecting Agent Names</h2>
+        
+        <p>Let's move on to testing the components of our application that make it unique. As seen in the <a href="../collaborative-music-loops-in-elixir-and-elm-the-back-end-part-2/">previous post</a>, we leverage the <code>JamBalancer</code> module as a stateful representation of our collection of jams at any given time. One gotcha that I ran into as I was testing the balancer was that its tests would fail when I ran the full test suite, but not when I ran only the tests for the balancer module. After digging up <a href="https://groups.google.com/d/msg/elixir-lang-talk/TYBK6C7xHdg/Fv5o_CKvlSgJ">this thread post</a> by José Valim, I realized that the issue was due to both the unit and integration-level tests using the same balancer process. I was able to fix it by injecting an agent name into the <code>start_link</code> function of the <a href="https://github.com/jeffcole/loops_with_friends/blob/back-end-blog-posts/lib/loops_with_friends/jam_balancer/server.ex"><code>JamBalancer</code></a>.</p>
+        
+        <pre class="highlight elixir"><code><span class="c1"># lib/loops_with_friends/jam_balancer.ex</span>&#x000A;<span class="k">defmodule</span> <span class="no">LoopsWithFriends</span><span class="o">.</span><span class="no">JamBalancer</span> <span class="k">do</span>&#x000A;  <span class="c1"># ...</span>&#x000A;&#x000A;  <span class="nv">@name</span> <span class="bp">__MODULE__</span>&#x000A;&#x000A;  <span class="k">def</span> <span class="n">start_link</span><span class="p">(</span><span class="n">opts</span> <span class="p">\\</span> <span class="p">[])</span> <span class="k">do</span>&#x000A;    <span class="n">opts</span> <span class="o">=</span> <span class="no">Keyword</span><span class="o">.</span><span class="n">put_new</span><span class="p">(</span><span class="n">opts</span><span class="p">,</span> <span class="ss">:name</span><span class="p">,</span> <span class="nv">@name</span><span class="p">)</span>&#x000A;&#x000A;    <span class="no">Agent</span><span class="o">.</span><span class="n">start_link</span><span class="p">(</span><span class="k">fn</span> <span class="o">-&gt;</span> <span class="no">JamCollection</span><span class="o">.</span><span class="n">new</span><span class="p">(</span><span class="n">opts</span><span class="p">)</span> <span class="k">end</span><span class="p">,</span> <span class="n">opts</span><span class="p">)</span>&#x000A;  <span class="k">end</span>&#x000A;&#x000A;  <span class="c1"># ...</span>&#x000A;<span class="k">end</span>&#x000A;</code></pre>
+        <p>This allows us to pass in the name of our balancer's test module as an option in its <a href="https://github.com/jeffcole/loops_with_friends/blob/back-end-blog-posts/test/lib/loops_with_friends/jam_balancer/server_test.exs">unit test</a>.</p>
+        
+        <pre class="highlight elixir"><code><span class="c1"># test/lib/loops_with_friends/jam_balancer_test.exs</span>&#x000A;<span class="k">defmodule</span> <span class="no">LoopsWithFriends</span><span class="o">.</span><span class="no">JamBalancerTest</span> <span class="k">do</span>&#x000A;  <span class="c1"># ...</span>&#x000A;&#x000A;  <span class="nv">@name</span> <span class="bp">__MODULE__</span>&#x000A;&#x000A;  <span class="n">describe</span> <span class="sd">"</span><span class="s2">`start_link`"</span> <span class="k">do</span>&#x000A;    <span class="n">test</span> <span class="sd">"</span><span class="s2">starts a new jam collection"</span> <span class="k">do</span>&#x000A;      <span class="n">result</span> <span class="o">=</span> <span class="no">JamBalancer</span><span class="o">.</span><span class="n">start_link</span><span class="p">(</span><span class="ss">name:</span> <span class="nv">@name</span><span class="p">)</span>&#x000A;&#x000A;      <span class="n">assert</span> <span class="p">{</span><span class="ss">:ok</span><span class="p">,</span> <span class="n">_pid</span><span class="p">}</span> <span class="o">=</span> <span class="n">result</span>&#x000A;&#x000A;  <span class="c1"># ...</span>&#x000A;<span class="k">end</span>&#x000A;</code></pre>
+        <p>Outside of this unit test, when a balancer worker is started by our supervision tree in any environment, the agent is passed the name of the <code>JamBalancer</code> module as defaulted above. This technique allows us to keep different tests from using the same stateful process, and thus keep them from interfering with each other.</p>
+        
+        <p>This use of <a href="https://en.wikipedia.org/wiki/Dependency_injection">dependency injection</a> also embodies the good testing practice of treating our tests as first-class clients of our production code. In this case, if our code needs some context from the client, we shouldn't be afraid to inject that context, whether the client is either more production code, or a test. However, since everything is a trade-off, this is only a good practice so long as passing context doesn't lead us to overly couple our code with tight dependencies.</p>
+        
+        <h2 id="using-stubs-to-isolate-tests">Using Stubs to Isolate Tests</h2>
+        
+        <p>You may have noticed in the previous posts, and in the earlier sections of this post, that the module names in the source links sometimes differ from those shown in the posts' code listings. It's time to address why that is, via a discussion of isolated testing.</p>
+        
+        <p>If you come from an object-oriented programming background, you may have had difficult experiences related to testing objects alongside their dependencies. When objects are tightly coupled, changes to one object can cause the tests for other objects to fail. This can result in a painful cycle of needing to change many different tests whenever a change to a single object is required.</p>
+        
+        <p>The same scenario is possible in the functional world — the only difference is that we have modules and functions instead of objects and methods. The solution is to test and develop our application components in isolation as much as possible, while being sure to test the integration of these components separately. The <a href="http://martinfowler.com/bliki/TestPyramid.html">test pyramid</a> guides us in the direction of writing more focused, isolated, and fast unit tests, than interdependent and slower integration tests.</p>
+        
+        <p>José Valim wrote an excellent post called <a href="http://blog.plataformatec.com.br/2015/10/mocks-and-explicit-contracts/">Mocks and Explicit Contracts</a> on how we can introduce new modules into our applications for the purposes of clarifying our code's responsibilities and isolating our tests.</p>
+        
+        <blockquote>
+          <h4 id="you-put-a-mock-in-my-stub">You put a mock in my stub!</h4>
+          <p>José's use of the term "mock" deviates a bit from Martin Fowler's <a href="http://martinfowler.com/articles/mocksArentStubs.html">delineation</a> of the differences between "mocks" and "stubs," in that to me, his usage appears closer to what Martin refers to a "stub." I find Martin's breakdown helpful, so although José calls them "mocks," I'll refer to these entities as "stubs."</p>
+        </blockquote>
+        
+        <p>In our application, we can use José's technique to isolate the <code>JamChannelTest</code> from the implementation of the <code>JamBalancer</code>, a module upon which the channel depends. First, we'll place our balancer implementation in a submodule called <a href="https://github.com/jeffcole/loops_with_friends/blob/back-end-blog-posts/lib/loops_with_friends/jam_balancer/server.ex"><code>JamBalancer.Server</code></a> (so named as an allusion to the fact that our balancer's <code>Agent</code> is a <code>GenServer</code> under the covers). Then we'll create another module, <a href="https://github.com/jeffcole/loops_with_friends/blob/back-end-blog-posts/lib/loops_with_friends/jam_balancer/stub.ex"><code>JamBalancer.Stub</code></a>, where we'll put the code that we want our <a href="https://github.com/jeffcole/loops_with_friends/blob/back-end-blog-posts/test/channels/jam_channel_test.exs"><code>JamChannelTest</code></a> to run whenever it needs balancer functionality.</p>
+        
+        <p>For example, here's the stub code for the <code>jam_capacity?</code> function. We're pattern matching on particular argument values for the <code>jam_id</code>, so that we can test what happens in the channel when the balancer indicates that a jam is full.</p>
+        
+        <pre class="highlight elixir"><code><span class="c1"># lib/loops_with_friends/jam_balancer/stub.ex</span>&#x000A;<span class="k">defmodule</span> <span class="no">LoopsWithFriends</span><span class="o">.</span><span class="no">JamBalancer</span><span class="o">.</span><span class="no">Stub</span> <span class="k">do</span>&#x000A;  <span class="c1"># ...</span>&#x000A;&#x000A;  <span class="k">def</span> <span class="n">jam_capacity?</span><span class="p">(</span><span class="n">_agent</span> <span class="p">\\</span> <span class="nv">@name</span><span class="p">,</span> <span class="n">jam_id</span><span class="p">)</span>&#x000A;  <span class="k">def</span> <span class="n">jam_capacity?</span><span class="p">(</span><span class="n">_agent</span><span class="p">,</span> <span class="sd">"</span><span class="s2">jam-1"</span><span class="p">),</span> <span class="k">do</span><span class="p">:</span> <span class="no">true</span>&#x000A;  <span class="k">def</span> <span class="n">jam_capacity?</span><span class="p">(</span><span class="n">_agent</span><span class="p">,</span> <span class="sd">"</span><span class="s2">full-jam"</span><span class="p">),</span> <span class="k">do</span><span class="p">:</span> <span class="no">false</span>&#x000A;&#x000A;  <span class="c1"># ...</span>&#x000A;<span class="k">end</span>&#x000A;</code></pre>
+        <p>The next thing we need to do is tell our application when to use our <code>Server</code> and when to use our <code>Stub</code>. We accomplish this by setting the <code>Server</code> as the default in <a href="https://github.com/jeffcole/loops_with_friends/blob/back-end-blog-posts/config/config.exs#L29"><code>config.exs</code></a>, so that it will be used in both the production and development environments.</p>
+        
+        <pre class="highlight elixir"><code><span class="c1"># config/config.exs</span>&#x000A;<span class="c1"># ...</span>&#x000A;&#x000A;<span class="n">config</span> <span class="ss">:loops_with_friends</span><span class="p">,</span> <span class="ss">:jam_balancer</span><span class="p">,</span>&#x000A;  <span class="no">LoopsWithFriends</span><span class="o">.</span><span class="no">JamBalancer</span><span class="o">.</span><span class="no">Server</span>&#x000A;&#x000A;<span class="c1"># ...</span>&#x000A;</code></pre>
+        <p>Then, we tell the test environment to use the <code>Stub</code> in <a href="https://github.com/jeffcole/loops_with_friends/blob/back-end-blog-posts/config/test.exs#L19"><code>test.exs</code></a>.</p>
+        
+        <pre class="highlight elixir"><code><span class="c1"># config/test.exs</span>&#x000A;<span class="c1"># ...</span>&#x000A;&#x000A;<span class="n">config</span> <span class="ss">:loops_with_friends</span><span class="p">,</span> <span class="ss">:jam_balancer</span><span class="p">,</span>&#x000A;  <span class="no">LoopsWithFriends</span><span class="o">.</span><span class="no">JamBalancer</span><span class="o">.</span><span class="no">Stub</span>&#x000A;&#x000A;<span class="c1"># ...</span>&#x000A;</code></pre>
+        <p>Finally, we instruct the <a href="https://github.com/jeffcole/loops_with_friends/blob/back-end-blog-posts/web/channels/jam_channel.ex"><code>JamChannel</code></a> to load the proper balancer for the current environment into a module attribute, rather than reference a module name directly.</p>
+        
+        <pre class="highlight elixir"><code><span class="c1"># web/channels/jam_channel.ex</span>&#x000A;<span class="k">defmodule</span> <span class="no">LoopsWithFriends</span><span class="o">.</span><span class="no">JamChannel</span> <span class="k">do</span>&#x000A;  <span class="c1"># ...</span>&#x000A;&#x000A;  <span class="nv">@jam_balancer</span> <span class="no">Application</span><span class="o">.</span><span class="n">get_env</span><span class="p">(</span>&#x000A;    <span class="ss">:loops_with_friends</span><span class="p">,</span>&#x000A;    <span class="ss">:jam_balancer</span>&#x000A;  <span class="p">)</span>&#x000A;&#x000A;  <span class="k">def</span> <span class="n">join</span><span class="p">(</span><span class="sd">"</span><span class="s2">jams:"</span> <span class="o">&lt;&gt;</span> <span class="n">jam_id</span><span class="p">,</span> <span class="n">_params</span><span class="p">,</span> <span class="n">socket</span><span class="p">)</span> <span class="k">do</span>&#x000A;    <span class="k">if</span> <span class="nv">@jam_balancer</span><span class="o">.</span><span class="n">jam_capacity?</span><span class="p">(</span><span class="n">jam_id</span><span class="p">)</span> <span class="k">do</span>&#x000A;&#x000A;  <span class="c1"># ...</span>&#x000A;</code></pre>
+        <p>Now the channel will use the <code>Server</code> in production and development, while it will use the <code>Stub</code> in the test environment.</p>
+        
+        <p>When our channel tests don't run any of our actual balancer code, they are isolated from changes to the balancer. This makes our tests more resilient to change, and therefore less brittle. Testing in this style can also lead you to naturally design modules and functions that are less coupled, resulting in an application that is easier to understand in pieces, and more pleasant to work on.</p>
+        
+        <p>This technique was also useful when testing the balancer in isolation from the jam collection. I created a <a href="https://github.com/jeffcole/loops_with_friends/blob/back-end-blog-posts/lib/loops_with_friends/jam_collection/stub.ex"><code>JamCollection.Stub</code></a> module for use in the test environment, and placed the collection implementation in the <a href="https://github.com/jeffcole/loops_with_friends/blob/back-end-blog-posts/lib/loops_with_friends/jam_collection/collection.ex"><code>JamCollection.Collection</code></a> module.</p>
+        
+        <p>Additionally, I used José's technique of making the contracts for balancers and collections explicit by using <a href="http://elixir-lang.org/getting-started/typespecs-and-behaviours.html#behaviours">Elixir behaviours</a>, as seen in the <a href="https://github.com/jeffcole/loops_with_friends/blob/back-end-blog-posts/lib/loops_with_friends/jam_collection.ex"><code>JamCollection</code></a> module.</p>
+        
+        <h2 id="testing-function-delegation">Testing Function Delegation</h2>
+        
+        <p>With our tests isolated from the dependencies of the modules they test, we're ready for the final technique I have to share. Recall that our jam balancer is a wrapper around the state of a jam collection. Most of the balancer's API consists of delegating function calls to the collection, which then returns values according to its own behavior. This poses an interesting problem for our tests. We want to test the balancer to ensure that it is behaving as expected, but we don't want to couple our tests to the behavior of the collection.</p>
+        
+        <p>If you are familiar with testing object-oriented applications, in this situation you might reach for mocks in the way that Martin Fowler describes them. You might want to use a library to metaprogram an expectation that a particular function is called with certain arguments. However as José notes in his post above, in Elixir that would be a heavy-handed approach that would would hide close coupling.</p>
+        
+        <p>Brian Cardarella proposes a solution in <a href="https://dockyard.com/blog/2016/03/24/testing-function-delegation-in-elixir-without-stubbing">this post</a>, where he notes that in Elixir, we can verify our function delegation easily by sending messages between processes.</p>
+        
+        <blockquote>
+          <h4 id="you-put-a-mock-in-my-stub-continued">You put a mock in my stub! (continued)</h4>
+          <p>Although the title of Brian's post is "Testing function delegation in Elixir without stubbing," I would argue that here again there might be a confusion of terms. I believe that Brian is doing essentially the opposite of what José did above, by using the term "stubbing" where it might be better to use "mocking." I would indeed call the modules that he constructs in his tests "stubs."</p>
+        
+          <p>Also at play here is the distinction that José makes in his post between using these terms as nouns versus using them as verbs, where his preference lies strongly with the former. Brian's test modules are being used as nouns rather than verbs, so I believe that José would approve.</p>
+        
+          <p>These are my interpretations of José's and Brian's usage as seen through the lens of Martin Fowler's <a href="http://martinfowler.com/articles/mocksArentStubs.html">definitions</a>, which are the most clear that I have found. When José and Brian take issue with stubbing and mocking, I believe that they are taking issue with the practice of using a library to obfuscate what in Elixir are simple tasks: dependency injection and message passing, respectively.</p>
+        </blockquote>
+        
+        <p>In our case, this approach is facilitated by the fact that we've already created a <code>Stub</code> for our <code>JamCollection</code> in the previous section. In <a href="https://github.com/jeffcole/loops_with_friends/blob/back-end-blog-posts/test/lib/loops_with_friends/jam_balancer/server_test.exs">our balancer's test</a>, we call a function on the balancer module, and then indicate our desire that it call through to the collection with the ExUnit macro <code>assert_receive</code>.</p>
+        
+        <pre class="highlight elixir"><code><span class="k">defmodule</span> <span class="no">LoopsWithFriends</span><span class="o">.</span><span class="no">JamBalancer</span><span class="o">.</span><span class="no">ServerTest</span> <span class="k">do</span>&#x000A;  <span class="c1"># ...</span>&#x000A;&#x000A;  <span class="n">alias</span> <span class="no">LoopsWithFriends</span><span class="o">.</span><span class="no">JamBalancer</span><span class="o">.</span><span class="no">Server</span>&#x000A;&#x000A;  <span class="nv">@name</span> <span class="bp">__MODULE__</span>&#x000A;&#x000A;  <span class="c1"># ...</span>&#x000A;&#x000A;  <span class="n">describe</span> <span class="sd">"</span><span class="s2">`jam_capacity?`"</span> <span class="k">do</span>&#x000A;    <span class="n">setup</span> <span class="ss">:start_server</span>&#x000A;&#x000A;    <span class="n">test</span> <span class="sd">"</span><span class="s2">asks the collection"</span> <span class="k">do</span>&#x000A;      <span class="no">Server</span><span class="o">.</span><span class="n">jam_capacity?</span><span class="p">(</span><span class="nv">@name</span><span class="p">,</span> <span class="sd">"</span><span class="s2">jam-1"</span><span class="p">)</span>&#x000A;&#x000A;      <span class="n">assert_receive</span> <span class="ss">:called_jam_collection_jam_capacity?</span>&#x000A;    <span class="k">end</span>&#x000A;  <span class="k">end</span>&#x000A;&#x000A;  <span class="c1"># ...</span>&#x000A;</code></pre>
+        <p>The <a href="https://github.com/jeffcole/loops_with_friends/blob/back-end-blog-posts/lib/loops_with_friends/jam_collection/stub.ex"><code>JamCollection.Stub</code></a> module, which is used by the <a href="https://github.com/jeffcole/loops_with_friends/blob/back-end-blog-posts/lib/loops_with_friends/jam_balancer/server.ex"><code>JamBalancer.Server</code></a> in the test environment, provides a handy place to send a message back to the test process.</p>
+        
+        <pre class="highlight elixir"><code><span class="k">defmodule</span> <span class="no">LoopsWithFriends</span><span class="o">.</span><span class="no">JamCollection</span><span class="o">.</span><span class="no">Stub</span> <span class="k">do</span>&#x000A;  <span class="c1"># ...</span>&#x000A;&#x000A;  <span class="k">def</span> <span class="n">jam_capacity?</span><span class="p">(</span><span class="n">jams</span><span class="p">,</span> <span class="n">_jam_id</span><span class="p">)</span> <span class="k">do</span>&#x000A;    <span class="n">send</span> <span class="n">self</span><span class="p">(),</span> <span class="ss">:called_jam_collection_jam_capacity?</span>&#x000A;  <span class="k">end</span>&#x000A;&#x000A;  <span class="c1"># ...</span>&#x000A;<span class="k">end</span>&#x000A;</code></pre>
+        <p>With that, we've succeeded in verifying that our balancer delegates functions to our collection, without duplicating the tests for the return values of those functions, and without using a mocking library to hide communication between modules.</p>
+        
+        <p>You might notice in the <a href="https://github.com/jeffcole/loops_with_friends/blob/back-end-blog-posts/test/lib/loops_with_friends/jam_balancer/server_test.exs"><code>ServerTest</code></a> that for some tests, I used Brian's tip of passing the caller of a function as an option to that function, in order to allow the agent's process to send a message back to the test process. Very useful!</p>
+        
+        <h2 id="back-to-front">Back to Front</h2>
+        
+        <p>The techniques outlined here have made building and testing the back end for Loops With Friends in Elixir a fun and rewarding experience. We've learned how to keep our tests on equal footing with our production code, how to isolate our tests from the dependencies of the function under test, and how to test function delegation in a simple way without increasing coupling.</p>
+        
+        <p>Our back end is done for now, so coming up next, we'll look at the wonders that Elm brings to the front end.</p>
+        <div class='share'><a href="http://twitter.com/home?status=Read+%27Collaborative+Music+Loops+in+Elixir+and+Elm%3A+Healthy+Elixir+Tests%27+%40obscurehobo+https%3A%2F%2Fjeffcole.github.io%2Fcollaborative-music-loops-in-elixir-and-elm-healthy-elixir-tests%2F" target="_blank"><img src="../assets/images/icons/twitter.svg" alt="Twitter" /><span>Tweet This</span></a></div>
+      </article>
+    </main>
+    <footer>
+      <a class='home' href='/' title='Home'>Home</a>
+      <p class='contact'>
+        <a href="https://github.com/jeffcole"><i class='fa fa-fw fa-2x fa-github' title='GitHub'></i>
+        </a>
+        <a href="https://www.linkedin.com/in/jeffreydcole"><i class='fa fa-fw fa-2x fa-linkedin' title='LinkedIn'></i>
+        </a>
+        <a href="https://twitter.com/obscurehobo"><i class='fa fa-fw fa-2x fa-twitter' title='Twitter'></i>
+        </a>
+        <a href="mailto:jeffreydonaldcole@gmail.com"><i class='fa fa-fw fa-2x fa-envelope' title='Email'></i>
+        </a>
+      </p>
+      <p>© 2017 Jeff Cole</p>
+    </footer>
+    <script src="../assets/javascripts/application.js"></script>
+  </body>
+</html>

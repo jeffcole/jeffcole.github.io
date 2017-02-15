@@ -1,0 +1,614 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom">
+  <title>Blog Name</title>
+  <subtitle>Blog subtitle</subtitle>
+  <id>http://blog.url.com/</id>
+  <link href="http://blog.url.com/"/>
+  <link href="http://blog.url.com/feed.xml" rel="self"/>
+  <updated>2016-10-12T09:38:00-06:00</updated>
+  <author>
+    <name>Blog Author</name>
+  </author>
+  <entry>
+    <title>Collaborative Music Loops in Elixir and Elm: Healthy Elixir Tests</title>
+    <link rel="alternate" href="http://blog.url.com/collaborative-music-loops-in-elixir-and-elm-healthy-elixir-tests/"/>
+    <id>http://blog.url.com/collaborative-music-loops-in-elixir-and-elm-healthy-elixir-tests/</id>
+    <published>2016-10-12T09:38:00-06:00</published>
+    <updated>2017-02-10T07:15:03-07:00</updated>
+    <author>
+      <name>Article Author</name>
+    </author>
+    <content type="html">&lt;p&gt;In the &lt;a href="../collaborative-music-loops-in-elixir-and-elm-the-back-end-part-1/"&gt;first post&lt;/a&gt; of this series we introduced the &lt;a href="http://loopswithfriends.com/"&gt;Loops With Friends&lt;/a&gt; app, and implemented channel joining, presence tracking, loop cycling, and event broadcasting with Elixir and Phoenix. In the &lt;a href="../collaborative-music-loops-in-elixir-and-elm-the-back-end-part-2/"&gt;second post&lt;/a&gt;, we added jam balancing by leveraging an Elixir agent. Please see those posts to learn more about those topics.&lt;/p&gt;
+
+&lt;p&gt;This post will look at how the functional nature of Elixir makes applications written in it a joy to test. Elixir ships with the unit testing framework &lt;a href="http://elixir-lang.org/docs/stable/ex_unit/ExUnit.html"&gt;ExUnit&lt;/a&gt;, which provides great testing support out of the box. We'll start with a brief look at testing Phoenix's abstractions around sockets and channels, and then move on to some techniques for building and maintaining a healthy test suite in Elixir.&lt;/p&gt;
+
+&lt;h2 id="testing-phoenix-sockets-and-channels"&gt;Testing Phoenix Sockets and Channels&lt;/h2&gt;
+
+&lt;p&gt;Along with the code to support channel implementation, Phoenix also ships with code to make testing sockets and channels straightforward. This code lives in the &lt;code&gt;Phoenix.ChannelTest&lt;/code&gt; module. The way that we take advantage of it is to &lt;code&gt;use&lt;/code&gt; it in a module of our own, and then use &lt;em&gt;that&lt;/em&gt; module in our actual test module. Note that this process is analogous to how we implemented presence in the &lt;a href="../collaborative-music-loops-in-elixir-and-elm-the-back-end-part-1/"&gt;first post&lt;/a&gt;.&lt;/p&gt;
+
+&lt;p&gt;Specifically, we &lt;code&gt;use Phoenix.ChannelTest&lt;/code&gt; in our &lt;code&gt;LoopsWithFriends&lt;/code&gt; submodule &lt;code&gt;ChannelCase&lt;/code&gt;, and then &lt;code&gt;use LoopsWithFriends.ChannelCase&lt;/code&gt; in both of our &lt;code&gt;UserSocketTest&lt;/code&gt; and &lt;code&gt;JamChannelTest&lt;/code&gt; modules. Once we've done so, we have access to all of the functions and macros that &lt;a href="https://hexdocs.pm/phoenix/Phoenix.ChannelTest.html"&gt;&lt;code&gt;Phoenix.ChannelTest&lt;/code&gt;&lt;/a&gt; provides. For instance, in &lt;a href="https://github.com/jeffcole/loops_with_friends/blob/back-end-blog-posts/test/channels/user_socket_test.exs"&gt;&lt;code&gt;UserSocketTest&lt;/code&gt;&lt;/a&gt;, we use the &lt;code&gt;connect&lt;/code&gt; macro to initialize a socket that we can then assert against.&lt;/p&gt;
+
+&lt;pre class="highlight elixir"&gt;&lt;code&gt;&lt;span class="c1"&gt;# test/channels/user_socket_test.exs&lt;/span&gt;
+&lt;span class="k"&gt;defmodule&lt;/span&gt; &lt;span class="no"&gt;LoopsWithFriends&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="no"&gt;UserSocketTest&lt;/span&gt; &lt;span class="k"&gt;do&lt;/span&gt;
+  &lt;span class="kn"&gt;use&lt;/span&gt; &lt;span class="no"&gt;LoopsWithFriends&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="no"&gt;ChannelCase&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="ss"&gt;async:&lt;/span&gt; &lt;span class="no"&gt;true&lt;/span&gt;
+
+  &lt;span class="n"&gt;alias&lt;/span&gt; &lt;span class="no"&gt;LoopsWithFriends&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="no"&gt;UserSocket&lt;/span&gt;
+
+  &lt;span class="n"&gt;test&lt;/span&gt; &lt;span class="sd"&gt;"&lt;/span&gt;&lt;span class="s2"&gt;`connect` assigns a UUID"&lt;/span&gt; &lt;span class="k"&gt;do&lt;/span&gt;
+    &lt;span class="n"&gt;assert&lt;/span&gt; &lt;span class="p"&gt;{&lt;/span&gt;&lt;span class="ss"&gt;:ok&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;socket&lt;/span&gt;&lt;span class="p"&gt;}&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="n"&gt;connect&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="no"&gt;UserSocket&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="p"&gt;%{})&lt;/span&gt;
+
+    &lt;span class="c1"&gt;# Ensure a valid UUID&lt;/span&gt;
+    &lt;span class="n"&gt;assert&lt;/span&gt; &lt;span class="no"&gt;UUID&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;info!&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;socket&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;assigns&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;user_id&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
+  &lt;span class="k"&gt;end&lt;/span&gt;
+&lt;span class="k"&gt;end&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;
+&lt;blockquote&gt;
+  &lt;p&gt;The &lt;code&gt;async: true&lt;/code&gt; on the &lt;code&gt;use&lt;/code&gt; line lets ExUnit know that the tests in this module are safe to run asynchronously, which is a huge workflow boon for anyone familiar with slow test suites.&lt;/p&gt;
+&lt;/blockquote&gt;
+
+&lt;p&gt;The tests in &lt;a href="https://github.com/jeffcole/loops_with_friends/blob/back-end-blog-posts/test/channels/jam_channel_test.exs"&gt;&lt;code&gt;JamChannelTest&lt;/code&gt;&lt;/a&gt; similarly take advantage of Phoenix test functions and macros such as &lt;code&gt;subscribe_and_join&lt;/code&gt;, &lt;code&gt;push&lt;/code&gt;, &lt;code&gt;assert_push&lt;/code&gt;, &lt;code&gt;refute_push&lt;/code&gt;, and &lt;code&gt;assert_broadcast&lt;/code&gt;.&lt;/p&gt;
+
+&lt;h2 id="injecting-agent-names"&gt;Injecting Agent Names&lt;/h2&gt;
+
+&lt;p&gt;Let's move on to testing the components of our application that make it unique. As seen in the &lt;a href="../collaborative-music-loops-in-elixir-and-elm-the-back-end-part-2/"&gt;previous post&lt;/a&gt;, we leverage the &lt;code&gt;JamBalancer&lt;/code&gt; module as a stateful representation of our collection of jams at any given time. One gotcha that I ran into as I was testing the balancer was that its tests would fail when I ran the full test suite, but not when I ran only the tests for the balancer module. After digging up &lt;a href="https://groups.google.com/d/msg/elixir-lang-talk/TYBK6C7xHdg/Fv5o_CKvlSgJ"&gt;this thread post&lt;/a&gt; by José Valim, I realized that the issue was due to both the unit and integration-level tests using the same balancer process. I was able to fix it by injecting an agent name into the &lt;code&gt;start_link&lt;/code&gt; function of the &lt;a href="https://github.com/jeffcole/loops_with_friends/blob/back-end-blog-posts/lib/loops_with_friends/jam_balancer/server.ex"&gt;&lt;code&gt;JamBalancer&lt;/code&gt;&lt;/a&gt;.&lt;/p&gt;
+
+&lt;pre class="highlight elixir"&gt;&lt;code&gt;&lt;span class="c1"&gt;# lib/loops_with_friends/jam_balancer.ex&lt;/span&gt;
+&lt;span class="k"&gt;defmodule&lt;/span&gt; &lt;span class="no"&gt;LoopsWithFriends&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="no"&gt;JamBalancer&lt;/span&gt; &lt;span class="k"&gt;do&lt;/span&gt;
+  &lt;span class="c1"&gt;# ...&lt;/span&gt;
+
+  &lt;span class="nv"&gt;@name&lt;/span&gt; &lt;span class="bp"&gt;__MODULE__&lt;/span&gt;
+
+  &lt;span class="k"&gt;def&lt;/span&gt; &lt;span class="n"&gt;start_link&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;opts&lt;/span&gt; &lt;span class="p"&gt;\\&lt;/span&gt; &lt;span class="p"&gt;[])&lt;/span&gt; &lt;span class="k"&gt;do&lt;/span&gt;
+    &lt;span class="n"&gt;opts&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="no"&gt;Keyword&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;put_new&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;opts&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="ss"&gt;:name&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="nv"&gt;@name&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
+
+    &lt;span class="no"&gt;Agent&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;start_link&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="k"&gt;fn&lt;/span&gt; &lt;span class="o"&gt;-&amp;gt;&lt;/span&gt; &lt;span class="no"&gt;JamCollection&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;new&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;opts&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt; &lt;span class="k"&gt;end&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;opts&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
+  &lt;span class="k"&gt;end&lt;/span&gt;
+
+  &lt;span class="c1"&gt;# ...&lt;/span&gt;
+&lt;span class="k"&gt;end&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;This allows us to pass in the name of our balancer's test module as an option in its &lt;a href="https://github.com/jeffcole/loops_with_friends/blob/back-end-blog-posts/test/lib/loops_with_friends/jam_balancer/server_test.exs"&gt;unit test&lt;/a&gt;.&lt;/p&gt;
+
+&lt;pre class="highlight elixir"&gt;&lt;code&gt;&lt;span class="c1"&gt;# test/lib/loops_with_friends/jam_balancer_test.exs&lt;/span&gt;
+&lt;span class="k"&gt;defmodule&lt;/span&gt; &lt;span class="no"&gt;LoopsWithFriends&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="no"&gt;JamBalancerTest&lt;/span&gt; &lt;span class="k"&gt;do&lt;/span&gt;
+  &lt;span class="c1"&gt;# ...&lt;/span&gt;
+
+  &lt;span class="nv"&gt;@name&lt;/span&gt; &lt;span class="bp"&gt;__MODULE__&lt;/span&gt;
+
+  &lt;span class="n"&gt;describe&lt;/span&gt; &lt;span class="sd"&gt;"&lt;/span&gt;&lt;span class="s2"&gt;`start_link`"&lt;/span&gt; &lt;span class="k"&gt;do&lt;/span&gt;
+    &lt;span class="n"&gt;test&lt;/span&gt; &lt;span class="sd"&gt;"&lt;/span&gt;&lt;span class="s2"&gt;starts a new jam collection"&lt;/span&gt; &lt;span class="k"&gt;do&lt;/span&gt;
+      &lt;span class="n"&gt;result&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="no"&gt;JamBalancer&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;start_link&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="ss"&gt;name:&lt;/span&gt; &lt;span class="nv"&gt;@name&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
+
+      &lt;span class="n"&gt;assert&lt;/span&gt; &lt;span class="p"&gt;{&lt;/span&gt;&lt;span class="ss"&gt;:ok&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;_pid&lt;/span&gt;&lt;span class="p"&gt;}&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="n"&gt;result&lt;/span&gt;
+
+  &lt;span class="c1"&gt;# ...&lt;/span&gt;
+&lt;span class="k"&gt;end&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;Outside of this unit test, when a balancer worker is started by our supervision tree in any environment, the agent is passed the name of the &lt;code&gt;JamBalancer&lt;/code&gt; module as defaulted above. This technique allows us to keep different tests from using the same stateful process, and thus keep them from interfering with each other.&lt;/p&gt;
+
+&lt;p&gt;This use of &lt;a href="https://en.wikipedia.org/wiki/Dependency_injection"&gt;dependency injection&lt;/a&gt; also embodies the good testing practice of treating our tests as first-class clients of our production code. In this case, if our code needs some context from the client, we shouldn't be afraid to inject that context, whether the client is either more production code, or a test. However, since everything is a trade-off, this is only a good practice so long as passing context doesn't lead us to overly couple our code with tight dependencies.&lt;/p&gt;
+
+&lt;h2 id="using-stubs-to-isolate-tests"&gt;Using Stubs to Isolate Tests&lt;/h2&gt;
+
+&lt;p&gt;You may have noticed in the previous posts, and in the earlier sections of this post, that the module names in the source links sometimes differ from those shown in the posts' code listings. It's time to address why that is, via a discussion of isolated testing.&lt;/p&gt;
+
+&lt;p&gt;If you come from an object-oriented programming background, you may have had difficult experiences related to testing objects alongside their dependencies. When objects are tightly coupled, changes to one object can cause the tests for other objects to fail. This can result in a painful cycle of needing to change many different tests whenever a change to a single object is required.&lt;/p&gt;
+
+&lt;p&gt;The same scenario is possible in the functional world — the only difference is that we have modules and functions instead of objects and methods. The solution is to test and develop our application components in isolation as much as possible, while being sure to test the integration of these components separately. The &lt;a href="http://martinfowler.com/bliki/TestPyramid.html"&gt;test pyramid&lt;/a&gt; guides us in the direction of writing more focused, isolated, and fast unit tests, than interdependent and slower integration tests.&lt;/p&gt;
+
+&lt;p&gt;José Valim wrote an excellent post called &lt;a href="http://blog.plataformatec.com.br/2015/10/mocks-and-explicit-contracts/"&gt;Mocks and Explicit Contracts&lt;/a&gt; on how we can introduce new modules into our applications for the purposes of clarifying our code's responsibilities and isolating our tests.&lt;/p&gt;
+
+&lt;blockquote&gt;
+  &lt;h4 id="you-put-a-mock-in-my-stub"&gt;You put a mock in my stub!&lt;/h4&gt;
+  &lt;p&gt;José's use of the term "mock" deviates a bit from Martin Fowler's &lt;a href="http://martinfowler.com/articles/mocksArentStubs.html"&gt;delineation&lt;/a&gt; of the differences between "mocks" and "stubs," in that to me, his usage appears closer to what Martin refers to a "stub." I find Martin's breakdown helpful, so although José calls them "mocks," I'll refer to these entities as "stubs."&lt;/p&gt;
+&lt;/blockquote&gt;
+
+&lt;p&gt;In our application, we can use José's technique to isolate the &lt;code&gt;JamChannelTest&lt;/code&gt; from the implementation of the &lt;code&gt;JamBalancer&lt;/code&gt;, a module upon which the channel depends. First, we'll place our balancer implementation in a submodule called &lt;a href="https://github.com/jeffcole/loops_with_friends/blob/back-end-blog-posts/lib/loops_with_friends/jam_balancer/server.ex"&gt;&lt;code&gt;JamBalancer.Server&lt;/code&gt;&lt;/a&gt; (so named as an allusion to the fact that our balancer's &lt;code&gt;Agent&lt;/code&gt; is a &lt;code&gt;GenServer&lt;/code&gt; under the covers). Then we'll create another module, &lt;a href="https://github.com/jeffcole/loops_with_friends/blob/back-end-blog-posts/lib/loops_with_friends/jam_balancer/stub.ex"&gt;&lt;code&gt;JamBalancer.Stub&lt;/code&gt;&lt;/a&gt;, where we'll put the code that we want our &lt;a href="https://github.com/jeffcole/loops_with_friends/blob/back-end-blog-posts/test/channels/jam_channel_test.exs"&gt;&lt;code&gt;JamChannelTest&lt;/code&gt;&lt;/a&gt; to run whenever it needs balancer functionality.&lt;/p&gt;
+
+&lt;p&gt;For example, here's the stub code for the &lt;code&gt;jam_capacity?&lt;/code&gt; function. We're pattern matching on particular argument values for the &lt;code&gt;jam_id&lt;/code&gt;, so that we can test what happens in the channel when the balancer indicates that a jam is full.&lt;/p&gt;
+
+&lt;pre class="highlight elixir"&gt;&lt;code&gt;&lt;span class="c1"&gt;# lib/loops_with_friends/jam_balancer/stub.ex&lt;/span&gt;
+&lt;span class="k"&gt;defmodule&lt;/span&gt; &lt;span class="no"&gt;LoopsWithFriends&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="no"&gt;JamBalancer&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="no"&gt;Stub&lt;/span&gt; &lt;span class="k"&gt;do&lt;/span&gt;
+  &lt;span class="c1"&gt;# ...&lt;/span&gt;
+
+  &lt;span class="k"&gt;def&lt;/span&gt; &lt;span class="n"&gt;jam_capacity?&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;_agent&lt;/span&gt; &lt;span class="p"&gt;\\&lt;/span&gt; &lt;span class="nv"&gt;@name&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;jam_id&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
+  &lt;span class="k"&gt;def&lt;/span&gt; &lt;span class="n"&gt;jam_capacity?&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;_agent&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="sd"&gt;"&lt;/span&gt;&lt;span class="s2"&gt;jam-1"&lt;/span&gt;&lt;span class="p"&gt;),&lt;/span&gt; &lt;span class="k"&gt;do&lt;/span&gt;&lt;span class="p"&gt;:&lt;/span&gt; &lt;span class="no"&gt;true&lt;/span&gt;
+  &lt;span class="k"&gt;def&lt;/span&gt; &lt;span class="n"&gt;jam_capacity?&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;_agent&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="sd"&gt;"&lt;/span&gt;&lt;span class="s2"&gt;full-jam"&lt;/span&gt;&lt;span class="p"&gt;),&lt;/span&gt; &lt;span class="k"&gt;do&lt;/span&gt;&lt;span class="p"&gt;:&lt;/span&gt; &lt;span class="no"&gt;false&lt;/span&gt;
+
+  &lt;span class="c1"&gt;# ...&lt;/span&gt;
+&lt;span class="k"&gt;end&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;The next thing we need to do is tell our application when to use our &lt;code&gt;Server&lt;/code&gt; and when to use our &lt;code&gt;Stub&lt;/code&gt;. We accomplish this by setting the &lt;code&gt;Server&lt;/code&gt; as the default in &lt;a href="https://github.com/jeffcole/loops_with_friends/blob/back-end-blog-posts/config/config.exs#L29"&gt;&lt;code&gt;config.exs&lt;/code&gt;&lt;/a&gt;, so that it will be used in both the production and development environments.&lt;/p&gt;
+
+&lt;pre class="highlight elixir"&gt;&lt;code&gt;&lt;span class="c1"&gt;# config/config.exs&lt;/span&gt;
+&lt;span class="c1"&gt;# ...&lt;/span&gt;
+
+&lt;span class="n"&gt;config&lt;/span&gt; &lt;span class="ss"&gt;:loops_with_friends&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="ss"&gt;:jam_balancer&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt;
+  &lt;span class="no"&gt;LoopsWithFriends&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="no"&gt;JamBalancer&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="no"&gt;Server&lt;/span&gt;
+
+&lt;span class="c1"&gt;# ...&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;Then, we tell the test environment to use the &lt;code&gt;Stub&lt;/code&gt; in &lt;a href="https://github.com/jeffcole/loops_with_friends/blob/back-end-blog-posts/config/test.exs#L19"&gt;&lt;code&gt;test.exs&lt;/code&gt;&lt;/a&gt;.&lt;/p&gt;
+
+&lt;pre class="highlight elixir"&gt;&lt;code&gt;&lt;span class="c1"&gt;# config/test.exs&lt;/span&gt;
+&lt;span class="c1"&gt;# ...&lt;/span&gt;
+
+&lt;span class="n"&gt;config&lt;/span&gt; &lt;span class="ss"&gt;:loops_with_friends&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="ss"&gt;:jam_balancer&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt;
+  &lt;span class="no"&gt;LoopsWithFriends&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="no"&gt;JamBalancer&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="no"&gt;Stub&lt;/span&gt;
+
+&lt;span class="c1"&gt;# ...&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;Finally, we instruct the &lt;a href="https://github.com/jeffcole/loops_with_friends/blob/back-end-blog-posts/web/channels/jam_channel.ex"&gt;&lt;code&gt;JamChannel&lt;/code&gt;&lt;/a&gt; to load the proper balancer for the current environment into a module attribute, rather than reference a module name directly.&lt;/p&gt;
+
+&lt;pre class="highlight elixir"&gt;&lt;code&gt;&lt;span class="c1"&gt;# web/channels/jam_channel.ex&lt;/span&gt;
+&lt;span class="k"&gt;defmodule&lt;/span&gt; &lt;span class="no"&gt;LoopsWithFriends&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="no"&gt;JamChannel&lt;/span&gt; &lt;span class="k"&gt;do&lt;/span&gt;
+  &lt;span class="c1"&gt;# ...&lt;/span&gt;
+
+  &lt;span class="nv"&gt;@jam_balancer&lt;/span&gt; &lt;span class="no"&gt;Application&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;get_env&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;
+    &lt;span class="ss"&gt;:loops_with_friends&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt;
+    &lt;span class="ss"&gt;:jam_balancer&lt;/span&gt;
+  &lt;span class="p"&gt;)&lt;/span&gt;
+
+  &lt;span class="k"&gt;def&lt;/span&gt; &lt;span class="n"&gt;join&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="sd"&gt;"&lt;/span&gt;&lt;span class="s2"&gt;jams:"&lt;/span&gt; &lt;span class="o"&gt;&amp;lt;&amp;gt;&lt;/span&gt; &lt;span class="n"&gt;jam_id&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;_params&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;socket&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt; &lt;span class="k"&gt;do&lt;/span&gt;
+    &lt;span class="k"&gt;if&lt;/span&gt; &lt;span class="nv"&gt;@jam_balancer&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;jam_capacity?&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;jam_id&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt; &lt;span class="k"&gt;do&lt;/span&gt;
+
+  &lt;span class="c1"&gt;# ...&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;Now the channel will use the &lt;code&gt;Server&lt;/code&gt; in production and development, while it will use the &lt;code&gt;Stub&lt;/code&gt; in the test environment.&lt;/p&gt;
+
+&lt;p&gt;When our channel tests don't run any of our actual balancer code, they are isolated from changes to the balancer. This makes our tests more resilient to change, and therefore less brittle. Testing in this style can also lead you to naturally design modules and functions that are less coupled, resulting in an application that is easier to understand in pieces, and more pleasant to work on.&lt;/p&gt;
+
+&lt;p&gt;This technique was also useful when testing the balancer in isolation from the jam collection. I created a &lt;a href="https://github.com/jeffcole/loops_with_friends/blob/back-end-blog-posts/lib/loops_with_friends/jam_collection/stub.ex"&gt;&lt;code&gt;JamCollection.Stub&lt;/code&gt;&lt;/a&gt; module for use in the test environment, and placed the collection implementation in the &lt;a href="https://github.com/jeffcole/loops_with_friends/blob/back-end-blog-posts/lib/loops_with_friends/jam_collection/collection.ex"&gt;&lt;code&gt;JamCollection.Collection&lt;/code&gt;&lt;/a&gt; module.&lt;/p&gt;
+
+&lt;p&gt;Additionally, I used José's technique of making the contracts for balancers and collections explicit by using &lt;a href="http://elixir-lang.org/getting-started/typespecs-and-behaviours.html#behaviours"&gt;Elixir behaviours&lt;/a&gt;, as seen in the &lt;a href="https://github.com/jeffcole/loops_with_friends/blob/back-end-blog-posts/lib/loops_with_friends/jam_collection.ex"&gt;&lt;code&gt;JamCollection&lt;/code&gt;&lt;/a&gt; module.&lt;/p&gt;
+
+&lt;h2 id="testing-function-delegation"&gt;Testing Function Delegation&lt;/h2&gt;
+
+&lt;p&gt;With our tests isolated from the dependencies of the modules they test, we're ready for the final technique I have to share. Recall that our jam balancer is a wrapper around the state of a jam collection. Most of the balancer's API consists of delegating function calls to the collection, which then returns values according to its own behavior. This poses an interesting problem for our tests. We want to test the balancer to ensure that it is behaving as expected, but we don't want to couple our tests to the behavior of the collection.&lt;/p&gt;
+
+&lt;p&gt;If you are familiar with testing object-oriented applications, in this situation you might reach for mocks in the way that Martin Fowler describes them. You might want to use a library to metaprogram an expectation that a particular function is called with certain arguments. However as José notes in his post above, in Elixir that would be a heavy-handed approach that would would hide close coupling.&lt;/p&gt;
+
+&lt;p&gt;Brian Cardarella proposes a solution in &lt;a href="https://dockyard.com/blog/2016/03/24/testing-function-delegation-in-elixir-without-stubbing"&gt;this post&lt;/a&gt;, where he notes that in Elixir, we can verify our function delegation easily by sending messages between processes.&lt;/p&gt;
+
+&lt;blockquote&gt;
+  &lt;h4 id="you-put-a-mock-in-my-stub-continued"&gt;You put a mock in my stub! (continued)&lt;/h4&gt;
+  &lt;p&gt;Although the title of Brian's post is "Testing function delegation in Elixir without stubbing," I would argue that here again there might be a confusion of terms. I believe that Brian is doing essentially the opposite of what José did above, by using the term "stubbing" where it might be better to use "mocking." I would indeed call the modules that he constructs in his tests "stubs."&lt;/p&gt;
+
+  &lt;p&gt;Also at play here is the distinction that José makes in his post between using these terms as nouns versus using them as verbs, where his preference lies strongly with the former. Brian's test modules are being used as nouns rather than verbs, so I believe that José would approve.&lt;/p&gt;
+
+  &lt;p&gt;These are my interpretations of José's and Brian's usage as seen through the lens of Martin Fowler's &lt;a href="http://martinfowler.com/articles/mocksArentStubs.html"&gt;definitions&lt;/a&gt;, which are the most clear that I have found. When José and Brian take issue with stubbing and mocking, I believe that they are taking issue with the practice of using a library to obfuscate what in Elixir are simple tasks: dependency injection and message passing, respectively.&lt;/p&gt;
+&lt;/blockquote&gt;
+
+&lt;p&gt;In our case, this approach is facilitated by the fact that we've already created a &lt;code&gt;Stub&lt;/code&gt; for our &lt;code&gt;JamCollection&lt;/code&gt; in the previous section. In &lt;a href="https://github.com/jeffcole/loops_with_friends/blob/back-end-blog-posts/test/lib/loops_with_friends/jam_balancer/server_test.exs"&gt;our balancer's test&lt;/a&gt;, we call a function on the balancer module, and then indicate our desire that it call through to the collection with the ExUnit macro &lt;code&gt;assert_receive&lt;/code&gt;.&lt;/p&gt;
+
+&lt;pre class="highlight elixir"&gt;&lt;code&gt;&lt;span class="k"&gt;defmodule&lt;/span&gt; &lt;span class="no"&gt;LoopsWithFriends&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="no"&gt;JamBalancer&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="no"&gt;ServerTest&lt;/span&gt; &lt;span class="k"&gt;do&lt;/span&gt;
+  &lt;span class="c1"&gt;# ...&lt;/span&gt;
+
+  &lt;span class="n"&gt;alias&lt;/span&gt; &lt;span class="no"&gt;LoopsWithFriends&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="no"&gt;JamBalancer&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="no"&gt;Server&lt;/span&gt;
+
+  &lt;span class="nv"&gt;@name&lt;/span&gt; &lt;span class="bp"&gt;__MODULE__&lt;/span&gt;
+
+  &lt;span class="c1"&gt;# ...&lt;/span&gt;
+
+  &lt;span class="n"&gt;describe&lt;/span&gt; &lt;span class="sd"&gt;"&lt;/span&gt;&lt;span class="s2"&gt;`jam_capacity?`"&lt;/span&gt; &lt;span class="k"&gt;do&lt;/span&gt;
+    &lt;span class="n"&gt;setup&lt;/span&gt; &lt;span class="ss"&gt;:start_server&lt;/span&gt;
+
+    &lt;span class="n"&gt;test&lt;/span&gt; &lt;span class="sd"&gt;"&lt;/span&gt;&lt;span class="s2"&gt;asks the collection"&lt;/span&gt; &lt;span class="k"&gt;do&lt;/span&gt;
+      &lt;span class="no"&gt;Server&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;jam_capacity?&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="nv"&gt;@name&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="sd"&gt;"&lt;/span&gt;&lt;span class="s2"&gt;jam-1"&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
+
+      &lt;span class="n"&gt;assert_receive&lt;/span&gt; &lt;span class="ss"&gt;:called_jam_collection_jam_capacity?&lt;/span&gt;
+    &lt;span class="k"&gt;end&lt;/span&gt;
+  &lt;span class="k"&gt;end&lt;/span&gt;
+
+  &lt;span class="c1"&gt;# ...&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;The &lt;a href="https://github.com/jeffcole/loops_with_friends/blob/back-end-blog-posts/lib/loops_with_friends/jam_collection/stub.ex"&gt;&lt;code&gt;JamCollection.Stub&lt;/code&gt;&lt;/a&gt; module, which is used by the &lt;a href="https://github.com/jeffcole/loops_with_friends/blob/back-end-blog-posts/lib/loops_with_friends/jam_balancer/server.ex"&gt;&lt;code&gt;JamBalancer.Server&lt;/code&gt;&lt;/a&gt; in the test environment, provides a handy place to send a message back to the test process.&lt;/p&gt;
+
+&lt;pre class="highlight elixir"&gt;&lt;code&gt;&lt;span class="k"&gt;defmodule&lt;/span&gt; &lt;span class="no"&gt;LoopsWithFriends&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="no"&gt;JamCollection&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="no"&gt;Stub&lt;/span&gt; &lt;span class="k"&gt;do&lt;/span&gt;
+  &lt;span class="c1"&gt;# ...&lt;/span&gt;
+
+  &lt;span class="k"&gt;def&lt;/span&gt; &lt;span class="n"&gt;jam_capacity?&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;jams&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;_jam_id&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt; &lt;span class="k"&gt;do&lt;/span&gt;
+    &lt;span class="n"&gt;send&lt;/span&gt; &lt;span class="n"&gt;self&lt;/span&gt;&lt;span class="p"&gt;(),&lt;/span&gt; &lt;span class="ss"&gt;:called_jam_collection_jam_capacity?&lt;/span&gt;
+  &lt;span class="k"&gt;end&lt;/span&gt;
+
+  &lt;span class="c1"&gt;# ...&lt;/span&gt;
+&lt;span class="k"&gt;end&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;With that, we've succeeded in verifying that our balancer delegates functions to our collection, without duplicating the tests for the return values of those functions, and without using a mocking library to hide communication between modules.&lt;/p&gt;
+
+&lt;p&gt;You might notice in the &lt;a href="https://github.com/jeffcole/loops_with_friends/blob/back-end-blog-posts/test/lib/loops_with_friends/jam_balancer/server_test.exs"&gt;&lt;code&gt;ServerTest&lt;/code&gt;&lt;/a&gt; that for some tests, I used Brian's tip of passing the caller of a function as an option to that function, in order to allow the agent's process to send a message back to the test process. Very useful!&lt;/p&gt;
+
+&lt;h2 id="back-to-front"&gt;Back to Front&lt;/h2&gt;
+
+&lt;p&gt;The techniques outlined here have made building and testing the back end for Loops With Friends in Elixir a fun and rewarding experience. We've learned how to keep our tests on equal footing with our production code, how to isolate our tests from the dependencies of the function under test, and how to test function delegation in a simple way without increasing coupling.&lt;/p&gt;
+
+&lt;p&gt;Our back end is done for now, so coming up next, we'll look at the wonders that Elm brings to the front end.&lt;/p&gt;
+
+</content>
+  </entry>
+  <entry>
+    <title>Collaborative Music Loops in Elixir and Elm: The Back End - Part II</title>
+    <link rel="alternate" href="http://blog.url.com/collaborative-music-loops-in-elixir-and-elm-the-back-end-part-2/"/>
+    <id>http://blog.url.com/collaborative-music-loops-in-elixir-and-elm-the-back-end-part-2/</id>
+    <published>2016-10-06T07:21:00-06:00</published>
+    <updated>2017-02-10T07:15:03-07:00</updated>
+    <author>
+      <name>Article Author</name>
+    </author>
+    <content type="html">
+&lt;p&gt;In the &lt;a href="../collaborative-music-loops-in-elixir-and-elm-the-back-end-part-1/"&gt;previous post&lt;/a&gt;, we looked at how Elixir and Phoenix make supporting multiple client connections in our application straightforward. Please see that post for background on the app we're building, &lt;a href="http://loopswithfriends.com/"&gt;Loops With Friends&lt;/a&gt;.&lt;/p&gt;
+
+&lt;p&gt;The last and most complex feature on the back end is the balancing of the users in each channel topic, or "jam." This is where we depart from Phoenix's conveniences and start using an Elixir OTP server to hold application state.&lt;/p&gt;
+
+&lt;h2 id="user-experience"&gt;User Experience&lt;/h2&gt;
+
+&lt;p&gt;The desired behavior is for users to be oblivious to the management of separate jams. When a user visits the app, the server should instruct the user's client which jam to join, and create new jams as each one fills up with users. The experience for the user will be near-instantaneous entry into a jam session without the need to manually join or switch channels on their own.&lt;/p&gt;
+
+&lt;p&gt;Additionally, as existing users leave the app and new ones visit, we should slot each new user into the most interesting jam at that time. This means telling their clients to join the jam with the most users currently jamming, so long as adding one more user wouldn't overflow the jam.&lt;/p&gt;
+
+&lt;h2 id="holding-state"&gt;Holding State&lt;/h2&gt;
+
+&lt;p&gt;What we need is something to represent the state of all of our jams at any given time. For this we'll use an Elixir &lt;a href="http://elixir-lang.org/getting-started/mix-otp/agent.html"&gt;Agent&lt;/a&gt;. The agent will hold our state for us, and also provide a thin interface into the management and querying of that state. Let's put it in a module called &lt;code&gt;JamBalancer&lt;/code&gt;.&lt;/p&gt;
+
+&lt;p&gt;The "thin interface" of the balancer is an important idiom. To keep our modules from taking on too many responsibilities and growing overwhelmingly large, we want to identify the responsibilities we need and then separate them out into different modules. The management of the state of our jams is a responsibility sufficient enough to stand on its own, so we limit the &lt;code&gt;JamBalancer&lt;/code&gt; to this role.&lt;/p&gt;
+
+&lt;p&gt;Given the state of our jams at any time, provided by the jam balancer, we should be able to determine what to do with new users arriving at the app. This allows us to implement a new &lt;em&gt;stateless&lt;/em&gt; module to do the hard work of providing us with the answers to our questions about that state. Let's call this new module &lt;code&gt;JamCollection&lt;/code&gt;.&lt;/p&gt;
+
+&lt;blockquote&gt;
+  &lt;p&gt;Note that to make our discussion of the back end implementation as clear as possible, the listings in this post deviate a bit from those in the source links, by removing affordances made for testing. I'll follow up this post with another on how I've tested the back end.&lt;/p&gt;
+&lt;/blockquote&gt;
+
+&lt;p&gt;With our design in hand, let's get to exploring how these modules come together to provide our jam balancing functionality.&lt;/p&gt;
+
+&lt;h2 id="balancing-jams"&gt;Balancing Jams&lt;/h2&gt;
+
+&lt;p&gt;To ensure that our jam balancer is available to our calling code, we'll need to start it up along with the application. Let's add it as a worker to our supervision tree [&lt;a href="https://github.com/jeffcole/loops_with_friends/blob/back-end-blog-posts/lib/loops_with_friends.ex#L21"&gt;source&lt;/a&gt;].&lt;/p&gt;
+
+&lt;pre class="highlight elixir"&gt;&lt;code&gt;&lt;span class="c1"&gt;# lib/loops_with_friends.ex&lt;/span&gt;
+&lt;span class="k"&gt;defmodule&lt;/span&gt; &lt;span class="no"&gt;LoopsWithFriends&lt;/span&gt; &lt;span class="k"&gt;do&lt;/span&gt;
+  &lt;span class="kn"&gt;use&lt;/span&gt; &lt;span class="no"&gt;Application&lt;/span&gt;
+
+  &lt;span class="c1"&gt;# ...&lt;/span&gt;
+
+  &lt;span class="k"&gt;def&lt;/span&gt; &lt;span class="n"&gt;start&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;_type&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;_args&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt; &lt;span class="k"&gt;do&lt;/span&gt;
+    &lt;span class="kn"&gt;import&lt;/span&gt; &lt;span class="no"&gt;Supervisor&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="no"&gt;Spec&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="ss"&gt;warn:&lt;/span&gt; &lt;span class="no"&gt;false&lt;/span&gt;
+
+    &lt;span class="n"&gt;children&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="p"&gt;[&lt;/span&gt;
+      &lt;span class="c1"&gt;# ...&lt;/span&gt;
+      &lt;span class="n"&gt;worker&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="no"&gt;LoopsWithFriends&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="no"&gt;JamBalancer&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="p"&gt;[]),&lt;/span&gt;
+    &lt;span class="p"&gt;]&lt;/span&gt;
+
+    &lt;span class="n"&gt;opts&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="p"&gt;[&lt;/span&gt;
+      &lt;span class="ss"&gt;strategy:&lt;/span&gt; &lt;span class="ss"&gt;:one_for_one&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt;
+      &lt;span class="ss"&gt;name:&lt;/span&gt; &lt;span class="no"&gt;LoopsWithFriends&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="no"&gt;Supervisor&lt;/span&gt;
+    &lt;span class="p"&gt;]&lt;/span&gt;
+    &lt;span class="no"&gt;Supervisor&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;start_link&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;children&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;opts&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
+  &lt;span class="k"&gt;end&lt;/span&gt;
+
+  &lt;span class="c1"&gt;# ...&lt;/span&gt;
+&lt;span class="k"&gt;end&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;As the supervisor starts each of its children on application load, it will look for a &lt;code&gt;start_link&lt;/code&gt; function in our balancer. Here we provide a wrapper around &lt;code&gt;Agent.start_link&lt;/code&gt;, passing in a new &lt;code&gt;JamCollection&lt;/code&gt; for the initial state.&lt;/p&gt;
+
+&lt;pre class="highlight elixir"&gt;&lt;code&gt;&lt;span class="c1"&gt;# lib/loops_with_friends/jam_balancer.ex&lt;/span&gt;
+&lt;span class="k"&gt;defmodule&lt;/span&gt; &lt;span class="no"&gt;LoopsWithFriends&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="no"&gt;JamBalancer&lt;/span&gt; &lt;span class="k"&gt;do&lt;/span&gt;
+  &lt;span class="n"&gt;alias&lt;/span&gt; &lt;span class="no"&gt;LoopsWithFriends&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="no"&gt;JamCollection&lt;/span&gt;
+
+  &lt;span class="nv"&gt;@name&lt;/span&gt; &lt;span class="bp"&gt;__MODULE__&lt;/span&gt;
+
+  &lt;span class="k"&gt;def&lt;/span&gt; &lt;span class="n"&gt;start_link&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;_opts&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt; &lt;span class="k"&gt;do&lt;/span&gt;
+    &lt;span class="no"&gt;Agent&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;start_link&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="k"&gt;fn&lt;/span&gt; &lt;span class="o"&gt;-&amp;gt;&lt;/span&gt; &lt;span class="no"&gt;JamCollection&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;new&lt;/span&gt;&lt;span class="p"&gt;()&lt;/span&gt; &lt;span class="k"&gt;end&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="ss"&gt;name:&lt;/span&gt; &lt;span class="nv"&gt;@name&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
+  &lt;span class="k"&gt;end&lt;/span&gt;
+&lt;span class="k"&gt;end&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;With our balancer started up, we can begin using it. When a user initially hits the app over HTTP, we need to let their client know which channel topic to join over the web socket. To provide this, we'll ask our jam balancer, "which jam is currently accepting users?"&lt;/p&gt;
+
+&lt;pre class="highlight html"&gt;&lt;code&gt;&lt;span class="c"&gt;&amp;lt;!-- web/templates/page/index.html.eex --&amp;gt;&lt;/span&gt;
+&lt;span class="nt"&gt;&amp;lt;script&amp;gt;&lt;/span&gt;
+  &lt;span class="nb"&gt;document&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="nx"&gt;addEventListener&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="s2"&gt;"DOMContentLoaded"&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="kd"&gt;function&lt;/span&gt; &lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="nx"&gt;event&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt; &lt;span class="p"&gt;{&lt;/span&gt;
+    &lt;span class="kd"&gt;var&lt;/span&gt; &lt;span class="nx"&gt;elmApp&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="nx"&gt;Elm&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="nx"&gt;App&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="nx"&gt;fullscreen&lt;/span&gt;&lt;span class="p"&gt;({&lt;/span&gt;
+      &lt;span class="na"&gt;host&lt;/span&gt;&lt;span class="p"&gt;:&lt;/span&gt; &lt;span class="nb"&gt;document&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="nx"&gt;location&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="nx"&gt;host&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt;
+      &lt;span class="na"&gt;topic&lt;/span&gt;&lt;span class="p"&gt;:&lt;/span&gt; &lt;span class="s2"&gt;"jams:&amp;lt;%= JamBalancer.current_jam %&amp;gt;"&lt;/span&gt;
+    &lt;span class="p"&gt;});&lt;/span&gt;
+  &lt;span class="p"&gt;});&lt;/span&gt;
+&lt;span class="nt"&gt;&amp;lt;/script&amp;gt;&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;In the &lt;code&gt;current_jam&lt;/code&gt; function, our &lt;code&gt;JamBalancer&lt;/code&gt; module [&lt;a href="https://github.com/jeffcole/loops_with_friends/blob/back-end-blog-posts/lib/loops_with_friends/jam_balancer/server.ex"&gt;source&lt;/a&gt; | &lt;a href="https://github.com/jeffcole/loops_with_friends/blob/back-end-blog-posts/test/lib/loops_with_friends/jam_balancer/server_test.exs"&gt;test&lt;/a&gt;] pulls the jam collection out of its agent and passes it to the &lt;code&gt;JamCollection&lt;/code&gt; module, invoking the function &lt;code&gt;most_populated_jam_with_capacity_or_new&lt;/code&gt;. Note again that all the balancer is doing is holding the state, and passing it along to another module to determine characteristics about that state.&lt;/p&gt;
+
+&lt;pre class="highlight elixir"&gt;&lt;code&gt;&lt;span class="c1"&gt;# lib/loops_with_friends/jam_balancer.ex&lt;/span&gt;
+&lt;span class="k"&gt;defmodule&lt;/span&gt; &lt;span class="no"&gt;LoopsWithFriends&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="no"&gt;JamBalancer&lt;/span&gt; &lt;span class="k"&gt;do&lt;/span&gt;
+  &lt;span class="c1"&gt;# ...&lt;/span&gt;
+
+  &lt;span class="k"&gt;def&lt;/span&gt; &lt;span class="n"&gt;current_jam&lt;/span&gt; &lt;span class="k"&gt;do&lt;/span&gt;
+    &lt;span class="no"&gt;JamCollection&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;most_populated_jam_with_capacity_or_new&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;jams&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
+  &lt;span class="k"&gt;end&lt;/span&gt;
+
+  &lt;span class="k"&gt;defp&lt;/span&gt; &lt;span class="n"&gt;jams&lt;/span&gt; &lt;span class="k"&gt;do&lt;/span&gt;
+    &lt;span class="no"&gt;Agent&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;get&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="nv"&gt;@name&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="o"&gt;&amp;amp;&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="nv"&gt;&amp;amp;1&lt;/span&gt;&lt;span class="p"&gt;))&lt;/span&gt;
+  &lt;span class="k"&gt;end&lt;/span&gt;
+&lt;span class="k"&gt;end&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;The &lt;code&gt;JamCollection&lt;/code&gt; module is where the real work goes on. It's also where we see that collections are represented internally as maps.&lt;/p&gt;
+
+&lt;p&gt;In the first clause of the &lt;code&gt;most_populated_jam_with_capacity_or_new&lt;/code&gt; function, we check to see if we have an empty collection, and if so, return a fresh jam ID back to the balancer so that a new jam can be started.&lt;/p&gt;
+
+&lt;p&gt;In the second clause, we go looking for the jam that has the most users, where that jam is not full. If no such jam exists because all jams are full, &lt;code&gt;jam_with_most_users_under_max&lt;/code&gt; returns &lt;code&gt;nil&lt;/code&gt;. In that case, our calling function detects the falsy value and returns a new jam ID.&lt;/p&gt;
+
+&lt;pre class="highlight elixir"&gt;&lt;code&gt;&lt;span class="c1"&gt;# lib/loops_with_friends/jam_collection.ex&lt;/span&gt;
+&lt;span class="k"&gt;defmodule&lt;/span&gt; &lt;span class="no"&gt;LoopsWithFriends&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="no"&gt;JamCollection&lt;/span&gt; &lt;span class="k"&gt;do&lt;/span&gt;
+  &lt;span class="nv"&gt;@max_users&lt;/span&gt; &lt;span class="m"&gt;7&lt;/span&gt;
+
+  &lt;span class="k"&gt;def&lt;/span&gt; &lt;span class="n"&gt;new&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="k"&gt;do&lt;/span&gt;&lt;span class="p"&gt;:&lt;/span&gt; &lt;span class="p"&gt;%{}&lt;/span&gt;
+
+  &lt;span class="k"&gt;def&lt;/span&gt; &lt;span class="n"&gt;most_populated_jam_with_capacity_or_new&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;jams&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
+    &lt;span class="ow"&gt;when&lt;/span&gt; &lt;span class="n"&gt;jams&lt;/span&gt; &lt;span class="o"&gt;==&lt;/span&gt; &lt;span class="p"&gt;%{},&lt;/span&gt; &lt;span class="k"&gt;do&lt;/span&gt;&lt;span class="p"&gt;:&lt;/span&gt; &lt;span class="n"&gt;uuid&lt;/span&gt;&lt;span class="p"&gt;()&lt;/span&gt;
+
+  &lt;span class="k"&gt;def&lt;/span&gt; &lt;span class="n"&gt;most_populated_jam_with_capacity_or_new&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;jams&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt; &lt;span class="k"&gt;do&lt;/span&gt;
+    &lt;span class="n"&gt;jam_with_most_users_under_max&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;jams&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt; &lt;span class="o"&gt;||&lt;/span&gt; &lt;span class="n"&gt;uuid&lt;/span&gt;&lt;span class="p"&gt;()&lt;/span&gt;
+  &lt;span class="k"&gt;end&lt;/span&gt;
+
+  &lt;span class="c1"&gt;# ...&lt;/span&gt;
+&lt;span class="k"&gt;end&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;I'll omit the implementation of &lt;code&gt;jam_with_most_users_under_max&lt;/code&gt; here for brevity, but check out the full &lt;code&gt;JamCollection&lt;/code&gt; module [&lt;a href="https://github.com/jeffcole/loops_with_friends/blob/back-end-blog-posts/lib/loops_with_friends/jam_collection/collection.ex"&gt;source&lt;/a&gt; | &lt;a href="https://github.com/jeffcole/loops_with_friends/blob/back-end-blog-posts/test/lib/loops_with_friends/jam_collection/collection_test.exs"&gt;test&lt;/a&gt;] if you'd like to see it.&lt;/p&gt;
+
+&lt;h2 id="populating-the-collection"&gt;Populating the Collection&lt;/h2&gt;
+
+&lt;p&gt;At this point we've got a clear API written for asking our balancer and collection what jam we should return to the user. What we're missing is the management of the contents of that collection as users join and leave.&lt;/p&gt;
+
+&lt;p&gt;In our channel, let's hook into our existing &lt;code&gt;join&lt;/code&gt; callback, and add a &lt;code&gt;terminate&lt;/code&gt; callback. Calls to new balancer functions &lt;code&gt;refresh&lt;/code&gt; and &lt;code&gt;remove_user&lt;/code&gt; will supply the functionality we need.&lt;/p&gt;
+
+&lt;pre class="highlight elixir"&gt;&lt;code&gt;&lt;span class="c1"&gt;# web/channels/jam_channel.ex&lt;/span&gt;
+&lt;span class="k"&gt;defmodule&lt;/span&gt; &lt;span class="no"&gt;LoopsWithFriends&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="no"&gt;JamChannel&lt;/span&gt; &lt;span class="k"&gt;do&lt;/span&gt;
+  &lt;span class="c1"&gt;# ...&lt;/span&gt;
+
+  &lt;span class="k"&gt;def&lt;/span&gt; &lt;span class="n"&gt;join&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="sd"&gt;"&lt;/span&gt;&lt;span class="s2"&gt;jams:"&lt;/span&gt; &lt;span class="o"&gt;&amp;lt;&amp;gt;&lt;/span&gt; &lt;span class="n"&gt;jam_id&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;_params&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;socket&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt; &lt;span class="k"&gt;do&lt;/span&gt;
+    &lt;span class="no"&gt;Presence&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;track&lt;/span&gt; &lt;span class="c1"&gt;# ...&lt;/span&gt;
+
+    &lt;span class="no"&gt;JamBalancer&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;refresh&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;jam_id&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="no"&gt;Presence&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;list&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;socket&lt;/span&gt;&lt;span class="p"&gt;))&lt;/span&gt;
+
+    &lt;span class="c1"&gt;# ...&lt;/span&gt;
+  &lt;span class="k"&gt;end&lt;/span&gt;
+
+  &lt;span class="k"&gt;def&lt;/span&gt; &lt;span class="n"&gt;terminate&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;msg&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;socket&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt; &lt;span class="k"&gt;do&lt;/span&gt;
+    &lt;span class="no"&gt;JamBalancer&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;remove_user&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;
+      &lt;span class="n"&gt;socket&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;assigns&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;jam_id&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt;
+      &lt;span class="n"&gt;socket&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;assigns&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;user_id&lt;/span&gt;
+    &lt;span class="p"&gt;)&lt;/span&gt;
+
+    &lt;span class="n"&gt;msg&lt;/span&gt;
+  &lt;span class="k"&gt;end&lt;/span&gt;
+
+  &lt;span class="c1"&gt;# ...&lt;/span&gt;
+&lt;span class="k"&gt;end&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;Similarly to &lt;code&gt;current_jam&lt;/code&gt;, our balancer will retrieve our jam collection state and forward the arguments for each of these functions to the collection module. The return values are new collections that get stored as the balancer's state.&lt;/p&gt;
+
+&lt;pre class="highlight elixir"&gt;&lt;code&gt;&lt;span class="c1"&gt;# lib/loops_with_friends/jam_balancer.ex&lt;/span&gt;
+&lt;span class="k"&gt;defmodule&lt;/span&gt; &lt;span class="no"&gt;LoopsWithFriends&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="no"&gt;JamBalancer&lt;/span&gt; &lt;span class="k"&gt;do&lt;/span&gt;
+  &lt;span class="c1"&gt;# ...&lt;/span&gt;
+
+  &lt;span class="k"&gt;def&lt;/span&gt; &lt;span class="n"&gt;refresh&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;jam_id&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;presence_map&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt; &lt;span class="k"&gt;do&lt;/span&gt;
+    &lt;span class="no"&gt;Agent&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;update&lt;/span&gt; &lt;span class="nv"&gt;@name&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="k"&gt;fn&lt;/span&gt; &lt;span class="n"&gt;jams&lt;/span&gt; &lt;span class="o"&gt;-&amp;gt;&lt;/span&gt;
+      &lt;span class="no"&gt;JamCollection&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;refresh&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;jams&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;jam_id&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="no"&gt;Map&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;keys&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;presence_map&lt;/span&gt;&lt;span class="p"&gt;))&lt;/span&gt;
+    &lt;span class="k"&gt;end&lt;/span&gt;
+  &lt;span class="k"&gt;end&lt;/span&gt;
+
+  &lt;span class="k"&gt;def&lt;/span&gt; &lt;span class="n"&gt;remove_user&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;jam_id&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;user_id&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt; &lt;span class="k"&gt;do&lt;/span&gt;
+    &lt;span class="no"&gt;Agent&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;update&lt;/span&gt; &lt;span class="nv"&gt;@name&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="k"&gt;fn&lt;/span&gt; &lt;span class="n"&gt;jams&lt;/span&gt; &lt;span class="o"&gt;-&amp;gt;&lt;/span&gt;
+      &lt;span class="no"&gt;JamCollection&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;remove_user&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;jams&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;jam_id&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;user_id&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
+    &lt;span class="k"&gt;end&lt;/span&gt;
+  &lt;span class="k"&gt;end&lt;/span&gt;
+
+  &lt;span class="c1"&gt;# ...&lt;/span&gt;
+&lt;span class="k"&gt;end&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;See the full &lt;code&gt;JamCollection&lt;/code&gt; module [&lt;a href="https://github.com/jeffcole/loops_with_friends/blob/back-end-blog-posts/lib/loops_with_friends/jam_collection/collection.ex"&gt;source&lt;/a&gt; | &lt;a href="https://github.com/jeffcole/loops_with_friends/blob/back-end-blog-posts/test/lib/loops_with_friends/jam_collection/collection_test.exs"&gt;test&lt;/a&gt;] for the implementations of these functions.&lt;/p&gt;
+
+&lt;h2 id="preventing-overflowing-jams"&gt;Preventing Overflowing Jams&lt;/h2&gt;
+
+&lt;p&gt;Things are looking pretty good. We're maintaining the state of our jam collection, and we're able to tell each arriving user what jam they should join. There's one hiccup though, and it's all in the timing.&lt;/p&gt;
+
+&lt;p&gt;We're sending the current jam ID to the client on initial page load along with the client-side code. Then the client runs that code and finally initiates the WebSocket connection with the server. In the time interval between when the server retrieves the current jam, and the client tries to join that jam, the jam could have filled up!&lt;/p&gt;
+
+&lt;p&gt;For example, imagine that two users load the app at exactly the same time. Continue to imagine that the currently filling jam has six users in it (remember that the maximum is seven users per jam). Both users get this same jam ID. But one user initiates the socket connection just &lt;em&gt;slightly&lt;/em&gt; before the other. What happens to the second user?&lt;/p&gt;
+
+&lt;p&gt;As it stands, they'll go right ahead and join the channel. Since at that point we've run out of music loops, bad things will happen. Despite the fact that our balancer is creating new jams as users arrive, we need a check whenever someone tries to join a channel. Here are the changes.&lt;/p&gt;
+
+&lt;pre class="highlight elixir"&gt;&lt;code&gt;&lt;span class="c1"&gt;# web/channels/jam_channel.ex&lt;/span&gt;
+&lt;span class="k"&gt;defmodule&lt;/span&gt; &lt;span class="no"&gt;LoopsWithFriends&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="no"&gt;JamChannel&lt;/span&gt; &lt;span class="k"&gt;do&lt;/span&gt;
+  &lt;span class="c1"&gt;# ...&lt;/span&gt;
+
+  &lt;span class="k"&gt;def&lt;/span&gt; &lt;span class="n"&gt;join&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="sd"&gt;"&lt;/span&gt;&lt;span class="s2"&gt;jams:"&lt;/span&gt; &lt;span class="o"&gt;&amp;lt;&amp;gt;&lt;/span&gt; &lt;span class="n"&gt;jam_id&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;_params&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;socket&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt; &lt;span class="k"&gt;do&lt;/span&gt;
+    &lt;span class="k"&gt;if&lt;/span&gt; &lt;span class="no"&gt;JamBalancer&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;jam_capacity?&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;jam_id&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt; &lt;span class="k"&gt;do&lt;/span&gt;
+      &lt;span class="c1"&gt;# ...&lt;/span&gt;
+
+      &lt;span class="p"&gt;{&lt;/span&gt;&lt;span class="ss"&gt;:ok&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt;
+       &lt;span class="p"&gt;%{&lt;/span&gt;&lt;span class="ss"&gt;user_id:&lt;/span&gt; &lt;span class="n"&gt;socket&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;assigns&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;user_id&lt;/span&gt;&lt;span class="p"&gt;},&lt;/span&gt;
+       &lt;span class="n"&gt;assign&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;socket&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="ss"&gt;:jam_id&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;jam_id&lt;/span&gt;&lt;span class="p"&gt;)}&lt;/span&gt;
+    &lt;span class="k"&gt;else&lt;/span&gt;
+      &lt;span class="p"&gt;{&lt;/span&gt;&lt;span class="ss"&gt;:error&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt;
+       &lt;span class="p"&gt;%{&lt;/span&gt;&lt;span class="ss"&gt;new_topic:&lt;/span&gt; &lt;span class="sd"&gt;"&lt;/span&gt;&lt;span class="s2"&gt;jams:&lt;/span&gt;&lt;span class="si"&gt;#{&lt;/span&gt;&lt;span class="nv"&gt;@jam_balancer&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;current_jam&lt;/span&gt;&lt;span class="si"&gt;}&lt;/span&gt;&lt;span class="s2"&gt;"&lt;/span&gt;&lt;span class="p"&gt;}}&lt;/span&gt;
+    &lt;span class="k"&gt;end&lt;/span&gt;
+  &lt;span class="k"&gt;end&lt;/span&gt;
+
+  &lt;span class="c1"&gt;# ...&lt;/span&gt;
+&lt;span class="k"&gt;end&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;We ask the balancer if the jam the user is trying to join has capacity, and if so, we let them in. If the jam is full, we return an error and a new topic for them to join, leaving the rejoin attempt up to the client. The &lt;code&gt;jam_capacity?&lt;/code&gt; function is once again delegated from the balancer to the collection.&lt;/p&gt;
+
+&lt;pre class="highlight elixir"&gt;&lt;code&gt;&lt;span class="c1"&gt;# lib/loops_with_friends/jam_balancer.ex&lt;/span&gt;
+&lt;span class="k"&gt;defmodule&lt;/span&gt; &lt;span class="no"&gt;LoopsWithFriends&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="no"&gt;JamBalancer&lt;/span&gt; &lt;span class="k"&gt;do&lt;/span&gt;
+  &lt;span class="c1"&gt;# ...&lt;/span&gt;
+
+  &lt;span class="k"&gt;def&lt;/span&gt; &lt;span class="n"&gt;jam_capacity?&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;jam_id&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt; &lt;span class="k"&gt;do&lt;/span&gt;
+    &lt;span class="no"&gt;JamCollection&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;jam_capacity?&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;jams&lt;/span&gt;&lt;span class="p"&gt;(),&lt;/span&gt; &lt;span class="n"&gt;jam_id&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
+  &lt;span class="k"&gt;end&lt;/span&gt;
+
+  &lt;span class="c1"&gt;# ...&lt;/span&gt;
+&lt;span class="k"&gt;end&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;Our server now has all the functionality we need to support multiple clients, and multiple groupings of clients, jamming away. As users come and go, the jams will be balanced to optimize the experience. Be sure to check out the &lt;code&gt;JamCollection&lt;/code&gt; module [&lt;a href="https://github.com/jeffcole/loops_with_friends/blob/back-end-blog-posts/lib/loops_with_friends/jam_collection/collection.ex"&gt;source&lt;/a&gt; | &lt;a href="https://github.com/jeffcole/loops_with_friends/blob/back-end-blog-posts/test/lib/loops_with_friends/jam_collection/collection_test.exs"&gt;test&lt;/a&gt;] if you're interested in seeing the implementations of some data-transforming private functions that we've glossed over here.&lt;/p&gt;
+
+&lt;h2 id="up-next"&gt;Up Next&lt;/h2&gt;
+
+&lt;p&gt;If you've noticed the several differences between the listings in the last two posts and the linked source, you've had a peek at changes made to support testing. Elixir promotes treating our tests like any other clients of our production code, and that's what we'll explore in the &lt;a href="../collaborative-music-loops-in-elixir-and-elm-healthy-elixir-tests/"&gt;next post&lt;/a&gt;.&lt;/p&gt;
+
+</content>
+  </entry>
+  <entry>
+    <title>Collaborative Music Loops in Elixir and Elm: The Back End - Part I</title>
+    <link rel="alternate" href="http://blog.url.com/collaborative-music-loops-in-elixir-and-elm-the-back-end-part-1/"/>
+    <id>http://blog.url.com/collaborative-music-loops-in-elixir-and-elm-the-back-end-part-1/</id>
+    <published>2016-10-05T07:21:00-06:00</published>
+    <updated>2017-02-10T07:15:03-07:00</updated>
+    <author>
+      <name>Article Author</name>
+    </author>
+    <content type="html">
+&lt;p&gt;When I started learning &lt;a href="http://elixir-lang.org/"&gt;Elixir&lt;/a&gt; and checking out &lt;a href="http://www.phoenixframework.org/"&gt;Phoenix&lt;/a&gt;, one of the things that struck me was the platform's first-class support for the real-time web. Once you get a handle on Elixir and become accustomed to programming in a functional style, it's a joy to work with the abstractions that the Phoenix team has set up around sockets and channels.&lt;/p&gt;
+
+&lt;p&gt;I came up with an idea for a project to test drive these features. And if I was going to be using functional programming, I figured I might as well do it all the way up the stack. The &lt;a href="http://elm-lang.org/"&gt;Elm&lt;/a&gt; language stands to transform how we write client-side applications, along with how well we enjoy the experience.&lt;/p&gt;
+
+&lt;p&gt;In this series, I want to highlight the interesting abstractions provided by Elixir, Phoenix, and Elm that make building these types of applications much more pleasant than in the past.&lt;/p&gt;
+
+&lt;p&gt;The first post in the series will explore how Elixir and Phoenix gave me the right tools to write the back end for &lt;a href="http://loopswithfriends.com/"&gt;Loops With Friends&lt;/a&gt;, a collaborative music-making web app. The app supports up to seven users in a given "jam," in which each user gets their own music loop. Each user can start and stop their loop to make music in real time with the other users in the jam. The app automatically creates and balances additional jams as necessary as users join and leave.&lt;/p&gt;
+
+&lt;p&gt;As we go, I'll highlight the bits of code that are relevant to understanding how everything is wired together, incrementally adding lines to existing functions. Be sure to check out the full code via the links if you'd like to see the final source and tests. We won't spend much time on the details of data transformation, so if you're new to Elixir, a great place to start is the &lt;a href="http://elixir-lang.org/getting-started/introduction.html"&gt;Elixir Guides&lt;/a&gt;.&lt;/p&gt;
+
+&lt;h2 id="joining-a-jam"&gt;Joining a Jam&lt;/h2&gt;
+
+&lt;p&gt;When a player visits the app, the server sends down the client-side code, along with a jam identifier. The client-side code then immediately requests a WebSocket connection to a Phoenix channel for that identifier. The server application's &lt;code&gt;Endpoint&lt;/code&gt; module [&lt;a href="https://github.com/jeffcole/loops_with_friends/blob/back-end-blog-posts/lib/loops_with_friends/endpoint.ex"&gt;source&lt;/a&gt;] binds the &lt;code&gt;/socket&lt;/code&gt; path to the &lt;code&gt;UserSocket&lt;/code&gt; module.&lt;/p&gt;
+
+&lt;pre class="highlight elixir"&gt;&lt;code&gt;&lt;span class="c1"&gt;# lib/loops_with_friends/endpoint.ex&lt;/span&gt;
+&lt;span class="k"&gt;defmodule&lt;/span&gt; &lt;span class="no"&gt;LoopsWithFriends&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="no"&gt;Endpoint&lt;/span&gt; &lt;span class="k"&gt;do&lt;/span&gt;
+  &lt;span class="kn"&gt;use&lt;/span&gt; &lt;span class="no"&gt;Phoenix&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="no"&gt;Endpoint&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="ss"&gt;otp_app:&lt;/span&gt; &lt;span class="ss"&gt;:loops_with_friends&lt;/span&gt;
+
+  &lt;span class="n"&gt;socket&lt;/span&gt; &lt;span class="sd"&gt;"&lt;/span&gt;&lt;span class="s2"&gt;/socket"&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="no"&gt;LoopsWithFriends&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="no"&gt;UserSocket&lt;/span&gt;
+
+  &lt;span class="c1"&gt;# ...&lt;/span&gt;
+&lt;span class="k"&gt;end&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;The &lt;code&gt;UserSocket&lt;/code&gt; module [&lt;a href="https://github.com/jeffcole/loops_with_friends/blob/back-end-blog-posts/web/channels/user_socket.ex"&gt;source&lt;/a&gt; | &lt;a href="https://github.com/jeffcole/loops_with_friends/blob/back-end-blog-posts/test/channels/user_socket_test.exs"&gt;test&lt;/a&gt;] declares the channels that are supported over the socket. The pattern &lt;code&gt;"jams:*"&lt;/code&gt; specifies what topics requested by the client the channel will match on. Meanwhile, the &lt;code&gt;connect&lt;/code&gt; function assigns a user ID to the socket so that we can know which user we are communicating with at all points after the initial connection.&lt;/p&gt;
+
+&lt;pre class="highlight elixir"&gt;&lt;code&gt;&lt;span class="c1"&gt;# web/channels/user_socket.ex&lt;/span&gt;
+&lt;span class="k"&gt;defmodule&lt;/span&gt; &lt;span class="no"&gt;LoopsWithFriends&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="no"&gt;UserSocket&lt;/span&gt; &lt;span class="k"&gt;do&lt;/span&gt;
+  &lt;span class="kn"&gt;use&lt;/span&gt; &lt;span class="no"&gt;Phoenix&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="no"&gt;Socket&lt;/span&gt;
+
+  &lt;span class="n"&gt;channel&lt;/span&gt; &lt;span class="sd"&gt;"&lt;/span&gt;&lt;span class="s2"&gt;jams:*"&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="no"&gt;LoopsWithFriends&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="no"&gt;JamChannel&lt;/span&gt;
+
+  &lt;span class="k"&gt;def&lt;/span&gt; &lt;span class="n"&gt;connect&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;_params&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;socket&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt; &lt;span class="k"&gt;do&lt;/span&gt;
+    &lt;span class="p"&gt;{&lt;/span&gt;&lt;span class="ss"&gt;:ok&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;assign&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;socket&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="ss"&gt;:user_id&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="no"&gt;UUID&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;uuid4&lt;/span&gt;&lt;span class="p"&gt;())}&lt;/span&gt;
+  &lt;span class="k"&gt;end&lt;/span&gt;
+&lt;span class="k"&gt;end&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;Finally, the &lt;code&gt;JamChannel&lt;/code&gt; module [&lt;a href="https://github.com/jeffcole/loops_with_friends/blob/back-end-blog-posts/web/channels/jam_channel.ex"&gt;source&lt;/a&gt; | &lt;a href="https://github.com/jeffcole/loops_with_friends/blob/back-end-blog-posts/test/channels/jam_channel_test.exs"&gt;test&lt;/a&gt;] implements the &lt;code&gt;join&lt;/code&gt; function, which matches on the topic requested by the client, replies with the user's ID, and assigns the jam ID to the socket.&lt;/p&gt;
+
+&lt;pre class="highlight elixir"&gt;&lt;code&gt;&lt;span class="c1"&gt;# web/channels/jam_channel.ex&lt;/span&gt;
+&lt;span class="k"&gt;defmodule&lt;/span&gt; &lt;span class="no"&gt;LoopsWithFriends&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="no"&gt;JamChannel&lt;/span&gt; &lt;span class="k"&gt;do&lt;/span&gt;
+  &lt;span class="kn"&gt;use&lt;/span&gt; &lt;span class="no"&gt;LoopsWithFriends&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="no"&gt;Web&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="ss"&gt;:channel&lt;/span&gt;
+
+  &lt;span class="k"&gt;def&lt;/span&gt; &lt;span class="n"&gt;join&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="sd"&gt;"&lt;/span&gt;&lt;span class="s2"&gt;jams:"&lt;/span&gt; &lt;span class="o"&gt;&amp;lt;&amp;gt;&lt;/span&gt; &lt;span class="n"&gt;jam_id&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;_params&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;socket&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt; &lt;span class="k"&gt;do&lt;/span&gt;
+    &lt;span class="c1"&gt;# ...&lt;/span&gt;
+
+    &lt;span class="p"&gt;{&lt;/span&gt;&lt;span class="ss"&gt;:ok&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt;
+     &lt;span class="p"&gt;%{&lt;/span&gt;&lt;span class="ss"&gt;user_id:&lt;/span&gt; &lt;span class="n"&gt;socket&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;assigns&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;user_id&lt;/span&gt;&lt;span class="p"&gt;},&lt;/span&gt;
+     &lt;span class="n"&gt;assign&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;socket&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="ss"&gt;:jam_id&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;jam_id&lt;/span&gt;&lt;span class="p"&gt;)}&lt;/span&gt;
+  &lt;span class="k"&gt;end&lt;/span&gt;
+&lt;span class="k"&gt;end&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;At this point, the user has successfully joined the jam — but a jam of one is a very lonely jam.&lt;/p&gt;
+
+&lt;h2 id="tracking-players"&gt;Tracking Players&lt;/h2&gt;
+
+&lt;p&gt;Phoenix's &lt;a href="https://dockyard.com/blog/2016/03/25/what-makes-phoenix-presence-special-sneak-peek"&gt;Presence&lt;/a&gt; feature makes it straightforward to manage connected entities in our application. It even works across nodes if the application is distributed. Although Loops With Friends hasn't made it big enough to require distribution (yet), presence is still quite handy for allowing multiple clients of our app to interact.&lt;/p&gt;
+
+&lt;p&gt;Adding presence support to our application is as simple as creating a boilerplate &lt;code&gt;Presence&lt;/code&gt; module which in turn &lt;code&gt;use&lt;/code&gt;s Phoenix's &lt;code&gt;Presence&lt;/code&gt; module. We add our module to our app's supervision tree [&lt;a href="https://github.com/jeffcole/loops_with_friends/blob/back-end-blog-posts/lib/loops_with_friends.ex#L20"&gt;source&lt;/a&gt;], and then interact with this module.&lt;/p&gt;
+
+&lt;p&gt;In our channel, when a user joins, we pass the socket, the user's id, and any metadata we wish to store to the &lt;code&gt;Presence.track&lt;/code&gt; function.&lt;/p&gt;
+
+&lt;pre class="highlight elixir"&gt;&lt;code&gt;&lt;span class="c1"&gt;# web/channels/jam_channel.ex&lt;/span&gt;
+&lt;span class="k"&gt;defmodule&lt;/span&gt; &lt;span class="no"&gt;LoopsWithFriends&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="no"&gt;JamChannel&lt;/span&gt; &lt;span class="k"&gt;do&lt;/span&gt;
+  &lt;span class="c1"&gt;# ...&lt;/span&gt;
+
+  &lt;span class="n"&gt;alias&lt;/span&gt; &lt;span class="no"&gt;LoopsWithFriends&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="no"&gt;Presence&lt;/span&gt;
+
+  &lt;span class="k"&gt;def&lt;/span&gt; &lt;span class="n"&gt;join&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="sd"&gt;"&lt;/span&gt;&lt;span class="s2"&gt;jams:"&lt;/span&gt; &lt;span class="o"&gt;&amp;lt;&amp;gt;&lt;/span&gt; &lt;span class="n"&gt;jam_id&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;_params&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;socket&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt; &lt;span class="k"&gt;do&lt;/span&gt;
+    &lt;span class="no"&gt;Presence&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;track&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;socket&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;socket&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;assigns&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;user_id&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="p"&gt;%{&lt;/span&gt;
+      &lt;span class="ss"&gt;user_id:&lt;/span&gt; &lt;span class="n"&gt;socket&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;assigns&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;user_id&lt;/span&gt;
+    &lt;span class="p"&gt;})&lt;/span&gt;
+
+    &lt;span class="c1"&gt;# ...&lt;/span&gt;
+  &lt;span class="k"&gt;end&lt;/span&gt;
+&lt;span class="k"&gt;end&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;That's all we need to do from the server side to track users. The Phoenix Presence client-side implementations communicate with the server over the socket to keep the server informed.&lt;/p&gt;
+
+&lt;h2 id="cycling-loops"&gt;Cycling Loops&lt;/h2&gt;
+
+&lt;p&gt;We want to make sure that each user gets a different music loop when they join. To accomplish this, we need to pick a loop out of any that haven't already been taken by users in the jam. The &lt;code&gt;next_loop&lt;/code&gt; function of the &lt;code&gt;LoopCycler&lt;/code&gt; module (omitted here for brevity) [&lt;a href="https://github.com/jeffcole/loops_with_friends/blob/back-end-blog-posts/lib/loops_with_friends/loop_cycler.ex"&gt;source&lt;/a&gt; | &lt;a href="https://github.com/jeffcole/loops_with_friends/blob/back-end-blog-posts/test/lib/loops_with_friends/loop_cycler_test.exs"&gt;test&lt;/a&gt;] handles this responsibility. In our channel's &lt;code&gt;join&lt;/code&gt; function, we pass &lt;code&gt;next_loop&lt;/code&gt; the loops that have already been taken, and include the result in the metadata tracked by &lt;code&gt;Presence&lt;/code&gt;. Determining the already taken loops from the current presence list is handled by a helper function added to the &lt;code&gt;Presence&lt;/code&gt; module [&lt;a href="https://github.com/jeffcole/loops_with_friends/blob/back-end-blog-posts/web/channels/presence.ex#L78"&gt;source&lt;/a&gt; | &lt;a href="https://github.com/jeffcole/loops_with_friends/blob/back-end-blog-posts/test/channels/presence_test.exs"&gt;test&lt;/a&gt;].&lt;/p&gt;
+
+&lt;pre class="highlight elixir"&gt;&lt;code&gt;&lt;span class="c1"&gt;# web/channels/jam_channel.ex&lt;/span&gt;
+&lt;span class="k"&gt;defmodule&lt;/span&gt; &lt;span class="no"&gt;LoopsWithFriends&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="no"&gt;JamChannel&lt;/span&gt; &lt;span class="k"&gt;do&lt;/span&gt;
+  &lt;span class="c1"&gt;# ...&lt;/span&gt;
+
+  &lt;span class="k"&gt;def&lt;/span&gt; &lt;span class="n"&gt;join&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="sd"&gt;"&lt;/span&gt;&lt;span class="s2"&gt;jams:"&lt;/span&gt; &lt;span class="o"&gt;&amp;lt;&amp;gt;&lt;/span&gt; &lt;span class="n"&gt;jam_id&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;_params&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;socket&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt; &lt;span class="k"&gt;do&lt;/span&gt;
+    &lt;span class="no"&gt;Presence&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;track&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;socket&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;socket&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;assigns&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;user_id&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="p"&gt;%{&lt;/span&gt;
+      &lt;span class="ss"&gt;user_id:&lt;/span&gt; &lt;span class="n"&gt;socket&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;assigns&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;user_id&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt;
+      &lt;span class="ss"&gt;loop_name:&lt;/span&gt; &lt;span class="no"&gt;LoopCycler&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;next_loop&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;present_loops&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;socket&lt;/span&gt;&lt;span class="p"&gt;))&lt;/span&gt;
+    &lt;span class="p"&gt;})&lt;/span&gt;
+
+    &lt;span class="c1"&gt;# ...&lt;/span&gt;
+  &lt;span class="k"&gt;end&lt;/span&gt;
+
+  &lt;span class="k"&gt;defp&lt;/span&gt; &lt;span class="n"&gt;present_loops&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;socket&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt; &lt;span class="k"&gt;do&lt;/span&gt;
+    &lt;span class="n"&gt;socket&lt;/span&gt;
+    &lt;span class="o"&gt;|&amp;gt;&lt;/span&gt; &lt;span class="no"&gt;Presence&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;list&lt;/span&gt;
+    &lt;span class="o"&gt;|&amp;gt;&lt;/span&gt; &lt;span class="no"&gt;Presence&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;extract_loops&lt;/span&gt;
+  &lt;span class="k"&gt;end&lt;/span&gt;
+&lt;span class="k"&gt;end&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;Adding the loop name to the users's presence is also how the client get's notified of their loop.&lt;/p&gt;
+
+&lt;h2 id="handling-events"&gt;Handling Events&lt;/h2&gt;
+
+&lt;p&gt;When users join, leave, play their loop, or stop their loop, the other users in the jam need to know about it. Phoenix Channels leverage Elixir OTP-style callbacks to handle client events. Once more in the &lt;code&gt;JamChannel&lt;/code&gt; module [&lt;a href="https://github.com/jeffcole/loops_with_friends/blob/back-end-blog-posts/web/channels/jam_channel.ex"&gt;source&lt;/a&gt; | &lt;a href="https://github.com/jeffcole/loops_with_friends/blob/back-end-blog-posts/test/channels/jam_channel_test.exs"&gt;test&lt;/a&gt;], we are using &lt;code&gt;handle_info&lt;/code&gt; and &lt;code&gt;handle_in&lt;/code&gt; callbacks to notify users of joins and plays/stops, respectively. The &lt;code&gt;handle_info&lt;/code&gt; callback gets invoked by sending the message &lt;code&gt;:after_join&lt;/code&gt; to our channel process, so that we can push out the &lt;code&gt;presence_state&lt;/code&gt; notification asynchronously from allowing our user to finish their join.&lt;/p&gt;
+
+&lt;pre class="highlight elixir"&gt;&lt;code&gt;&lt;span class="c1"&gt;# web/channels/jam_channel.ex&lt;/span&gt;
+&lt;span class="k"&gt;defmodule&lt;/span&gt; &lt;span class="no"&gt;LoopsWithFriends&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="no"&gt;JamChannel&lt;/span&gt; &lt;span class="k"&gt;do&lt;/span&gt;
+  &lt;span class="c1"&gt;# ...&lt;/span&gt;
+
+  &lt;span class="k"&gt;def&lt;/span&gt; &lt;span class="n"&gt;join&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="sd"&gt;"&lt;/span&gt;&lt;span class="s2"&gt;jams:"&lt;/span&gt; &lt;span class="o"&gt;&amp;lt;&amp;gt;&lt;/span&gt; &lt;span class="n"&gt;jam_id&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;_params&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;socket&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt; &lt;span class="k"&gt;do&lt;/span&gt;
+    &lt;span class="c1"&gt;# ...&lt;/span&gt;
+
+    &lt;span class="n"&gt;send&lt;/span&gt; &lt;span class="n"&gt;self&lt;/span&gt;&lt;span class="p"&gt;(),&lt;/span&gt; &lt;span class="ss"&gt;:after_join&lt;/span&gt;
+
+    &lt;span class="c1"&gt;# ...&lt;/span&gt;
+  &lt;span class="k"&gt;end&lt;/span&gt;
+
+  &lt;span class="k"&gt;def&lt;/span&gt; &lt;span class="n"&gt;handle_info&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="ss"&gt;:after_join&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;socket&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt; &lt;span class="k"&gt;do&lt;/span&gt;
+    &lt;span class="n"&gt;push&lt;/span&gt; &lt;span class="n"&gt;socket&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="sd"&gt;"&lt;/span&gt;&lt;span class="s2"&gt;presence_state"&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="no"&gt;Presence&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;list&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;socket&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
+
+    &lt;span class="p"&gt;{&lt;/span&gt;&lt;span class="ss"&gt;:noreply&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;socket&lt;/span&gt;&lt;span class="p"&gt;}&lt;/span&gt;
+  &lt;span class="k"&gt;end&lt;/span&gt;
+
+  &lt;span class="k"&gt;def&lt;/span&gt; &lt;span class="n"&gt;handle_in&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="sd"&gt;"&lt;/span&gt;&lt;span class="s2"&gt;loop:"&lt;/span&gt; &lt;span class="o"&gt;&amp;lt;&amp;gt;&lt;/span&gt; &lt;span class="n"&gt;event&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="p"&gt;%{&lt;/span&gt;&lt;span class="sd"&gt;"&lt;/span&gt;&lt;span class="s2"&gt;user_id"&lt;/span&gt; &lt;span class="o"&gt;=&amp;gt;&lt;/span&gt; &lt;span class="n"&gt;user_id&lt;/span&gt;&lt;span class="p"&gt;},&lt;/span&gt; &lt;span class="n"&gt;socket&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt; &lt;span class="k"&gt;do&lt;/span&gt;
+    &lt;span class="n"&gt;broadcast!&lt;/span&gt; &lt;span class="n"&gt;socket&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="sd"&gt;"&lt;/span&gt;&lt;span class="s2"&gt;loop:&lt;/span&gt;&lt;span class="si"&gt;#{&lt;/span&gt;&lt;span class="n"&gt;event&lt;/span&gt;&lt;span class="si"&gt;}&lt;/span&gt;&lt;span class="s2"&gt;"&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="p"&gt;%{&lt;/span&gt;&lt;span class="ss"&gt;user_id:&lt;/span&gt; &lt;span class="n"&gt;user_id&lt;/span&gt;&lt;span class="p"&gt;}&lt;/span&gt;
+
+    &lt;span class="p"&gt;{&lt;/span&gt;&lt;span class="ss"&gt;:noreply&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;socket&lt;/span&gt;&lt;span class="p"&gt;}&lt;/span&gt;
+  &lt;span class="k"&gt;end&lt;/span&gt;
+
+  &lt;span class="c1"&gt;# ...&lt;/span&gt;
+&lt;span class="k"&gt;end&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;A user leaving a jam is propagated out to all clients in the channel automatically by Phoenix via a &lt;code&gt;presence_diff&lt;/code&gt; message.&lt;/p&gt;
+
+&lt;h2 id="up-next"&gt;Up Next&lt;/h2&gt;
+
+&lt;p&gt;We've got our server application set up so that users can join a jam, see other users, get their loop, and send and receive loop events across the jam.&lt;/p&gt;
+
+&lt;p&gt;We'll run into problems, however, once our little app goes viral and there are a million users in a single jam. In the &lt;a href="../collaborative-music-loops-in-elixir-and-elm-the-back-end-part-2/"&gt;next post&lt;/a&gt;, we'll see how to make sure that we can handle more than seven users blissfully jamming away.&lt;/p&gt;
+
+</content>
+  </entry>
+</feed>
