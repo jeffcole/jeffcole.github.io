@@ -10,10 +10,10 @@ module PageHelpers
   def title_and_date_link(article)
     link = article.try(:external?) ? article.url : article
 
-    link_to link do
-      content_tag(:h3) { article.title } +
-        content_tag(:p, class: :date) { long_date(article.date) }
-    end
+    content_tag(:div, class: :info) do
+      content_tag(:h3) { link_to(link) { article.title } }
+    end +
+      content_tag(:p, class: :date) { long_date(article.date) }
   end
 
   def long_date(date)

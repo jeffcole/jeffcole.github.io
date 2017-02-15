@@ -1,9 +1,11 @@
 %li
   %h3= talk.title
   - talk.occurrences.each do |occurrence|
+    .info
+      %h4= occurrence.event
+      %h4= occurrence.venue
+      %h4= link_to "Slides", occurrence.slides_url
+      - if occurrence.video_url
+        %h4= link_to "Video", occurrence.video_url
+
     %p.date= long_date(occurrence.date)
-    %h4= occurrence.event
-    %h4= occurrence.venue
-    %h4= link_to "Slides", occurrence.slides_url
-    - if occurrence.video_url
-      %h4= link_to "Video", occurrence.video_url

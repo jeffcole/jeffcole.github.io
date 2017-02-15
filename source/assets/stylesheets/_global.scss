@@ -31,18 +31,18 @@ p.contact {
   }
 }
 
-.posts {
+.list {
   li {
     overflow: hidden;
     margin-bottom: $base-spacing * 1.25;
   }
 
-  h3 {
+  .info {
     margin: 0;
   }
 
   @include media($large-screen-up) {
-    h3 {
+    .info {
       @include span-columns(4 of 6);
     }
 
