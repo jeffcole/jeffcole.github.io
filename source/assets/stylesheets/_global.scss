@@ -29,8 +29,7 @@ main {
 p.contact {
   margin-bottom: $base-spacing * 2;
 
-  .fa-github,
-  .fa-linkedin-square {
+  :not(:last-child) {
     margin-right: $small-spacing * 0.75;
   }
 }
