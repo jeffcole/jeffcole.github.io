@@ -19,6 +19,10 @@ main {
 
   .tagline {
     margin-bottom: $small-spacing;
+
+    span {
+      white-space: nowrap;
+    }
   }
 }
 
