@@ -1,6 +1,6 @@
 header {
   float: right;
-  padding-right: 1.4em;
+  padding-right: $base-spacing;
 }
 
 main {
@@ -18,16 +18,16 @@ main {
   text-align: center;
 
   .tagline {
-    margin-bottom: $small-spacing ;
+    margin-bottom: $small-spacing;
   }
 }
 
-.contact {
+p.contact {
   margin-bottom: $base-spacing * 2;
 
   .fa-github,
   .fa-linkedin-square {
-    margin-right: 0.5em;
+    margin-right: $small-spacing;
   }
 }
 
