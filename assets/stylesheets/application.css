@@ -2285,7 +2285,7 @@ html {
     .type-system-serif p span {
       font-family: "Merriweather Sans", sans-serif;
       font-weight: 700; }
-  .type-system-serif a.home {
+  .type-system-serif a.read-more {
     display: inline-block;
     font-family: "Merriweather Sans", sans-serif;
     font-size: 0.8em;
@@ -2293,7 +2293,7 @@ html {
     margin-left: 0.2em;
     position: relative;
     text-transform: uppercase; }
-    .type-system-serif a.home span {
+    .type-system-serif a.read-more span {
       font-family: "Lusitana", serif;
       font-size: 1.5em;
       font-style: normal;
@@ -2389,17 +2389,25 @@ html {
   color: #859900; }
 
 header {
-  float: right;
-  padding-right: 1.5em; }
+  margin: 1.5em;
+  text-align: center;
+  position: relative; }
+  header a {
+    position: absolute;
+    top: 12%;
+    right: 0;
+    font-size: 0.75em; }
 
 main {
-  margin: 1.5em;
-  margin-bottom: 3em; }
+  margin: 1.5em; }
   @media screen and (min-width: 600px) {
     main {
       margin-left: auto;
       margin-right: auto;
       max-width: 37.5em; } }
+
+section {
+  margin-bottom: 3em; }
 
 .intro {
   text-align: center; }
@@ -2408,10 +2416,8 @@ main {
     .intro .tagline span {
       white-space: nowrap; }
 
-p.contact {
-  margin-bottom: 3em; }
-  p.contact :not(:last-child) {
-    margin-right: 0.5625em; }
+p.contact :not(:last-child) {
+  margin-right: 0.5625em; }
 
 .list li {
   overflow: hidden;
@@ -2452,4 +2458,9 @@ footer {
   margin-bottom: 3em;
   text-align: center; }
   footer .home {
+    display: block;
+    font-weight: 700;
+    margin-bottom: 3em;
+    text-transform: uppercase; }
+  footer .contact {
     margin-bottom: 3em; }
