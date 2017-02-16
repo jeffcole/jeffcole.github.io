@@ -90,6 +90,13 @@ footer {
   text-align: center;
 
   .home {
+    display: inline-block;
+    font-weight: 700;
+    margin-bottom: $base-spacing * 2;
+    text-transform: uppercase;
+  }
+
+  .contact {
     margin-bottom: $base-spacing * 2;
   }
 }
