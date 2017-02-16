@@ -2458,7 +2458,7 @@ footer {
   margin-bottom: 3em;
   text-align: center; }
   footer .home {
-    display: block;
+    display: inline-block;
     font-weight: 700;
     margin-bottom: 3em;
     text-transform: uppercase; }
