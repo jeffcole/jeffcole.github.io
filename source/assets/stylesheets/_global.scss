@@ -1,6 +1,14 @@
 header {
-  float: right;
-  padding-right: $base-spacing;
+  margin: $base-spacing;
+  text-align: center;
+  position: relative;
+
+  a {
+    position: absolute;
+    top: 12%;
+    right: 0;
+    font-size: $base-font-size * 0.75;
+  }
 }
 
 main {
