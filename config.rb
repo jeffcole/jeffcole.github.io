@@ -45,3 +45,12 @@ activate :blog do |blog|
 end
 
 activate :directory_indexes
+
+redirect "collaborative-music-loops-in-elixir-and-elm-the-back-end-part-1.html",
+  to: "/collaborative-music-loops-in-elixir-and-elm/"
+
+redirect "collaborative-music-loops-in-elixir-and-elm-the-back-end-part-2.html",
+  to: "/talk-to-my-elixir-agent/"
+
+redirect "collaborative-music-loops-in-elixir-and-elm-healthy-elixir-tests.html",
+  to: "/testing-phoenix-sockets-and-channels/"

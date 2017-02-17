@@ -1,12 +1,14 @@
 ---
-title: "Collaborative Music Loops in Elixir and Elm: The Back End - Part II"
-date: 2016-10-06 13:21 UTC
+title: "Talk to My (Elixir) Agent"
+date: 2016-10-07 13:21 UTC
 ---
 
 
-In the [previous post], we looked at how Elixir and Phoenix make supporting multiple client connections in our application straightforward. Please see that post for background on the app we're building, [Loops With Friends].
+> This post is one in a series about building a collaborative music app in Elixir and Elm called [Loops With Friends]. If you'd like to catch up, visit the [first post] in the series to learn all about it!
 
-The last and most complex feature on the back end is the balancing of the users in each channel topic, or "jam." This is where we depart from Phoenix's conveniences and start using an Elixir OTP server to hold application state.
+In the [previous post] in this series, we looked at how Elixir and Phoenix make supporting multiple client connections in our application straightforward.
+
+The last and most complex feature on the back end of the [Loops With Friends] app is the balancing of the users in each channel topic, or "jam." This is where we depart from Phoenix's conveniences and start using an Elixir OTP server to hold application state.
 
 ## User Experience
 
@@ -24,7 +26,7 @@ Given the state of our jams at any time, provided by the jam balancer, we should
 
 > Note that to make our discussion of the back end implementation as clear as possible, the listings in this post deviate a bit from those in the source links, by removing affordances made for testing. I'll follow up this post with another on how I've tested the back end.
 
-With our design in hand, let's get to exploring how these modules come together to provide our jam balancing functionality.
+With our design in hand, let's explore how these modules come together to provide our jam balancing functionality.
 
 ## Balancing Jams
 
@@ -185,66 +187,16 @@ end
 
 See the full `JamCollection` module [[source][JamCollection source] \| [test][JamCollection test]] for the implementations of these functions.
 
-## Preventing Overflowing Jams
-
-Things are looking pretty good. We're maintaining the state of our jam collection, and we're able to tell each arriving user what jam they should join. There's one hiccup though, and it's all in the timing.
-
-We're sending the current jam ID to the client on initial page load along with the client-side code. Then the client runs that code and finally initiates the WebSocket connection with the server. In the time interval between when the server retrieves the current jam, and the client tries to join that jam, the jam could have filled up!
-
-For example, imagine that two users load the app at exactly the same time. Continue to imagine that the currently filling jam has six users in it (remember that the maximum is seven users per jam). Both users get this same jam ID. But one user initiates the socket connection just *slightly* before the other. What happens to the second user?
-
-As it stands, they'll go right ahead and join the channel. Since at that point we've run out of music loops, bad things will happen. Despite the fact that our balancer is creating new jams as users arrive, we need a check whenever someone tries to join a channel. Here are the changes.
-
-~~~ elixir
-# web/channels/jam_channel.ex
-defmodule LoopsWithFriends.JamChannel do
-  # ...
-
-  def join("jams:" <> jam_id, _params, socket) do
-    if JamBalancer.jam_capacity?(jam_id) do
-      # ...
-
-      {:ok,
-       %{user_id: socket.assigns.user_id},
-       assign(socket, :jam_id, jam_id)}
-    else
-      {:error,
-       %{new_topic: "jams:#{@jam_balancer.current_jam}"}}
-    end
-  end
-
-  # ...
-end
-~~~
-
-We ask the balancer if the jam the user is trying to join has capacity, and if so, we let them in. If the jam is full, we return an error and a new topic for them to join, leaving the rejoin attempt up to the client. The `jam_capacity?` function is once again delegated from the balancer to the collection.
-
-~~~ elixir
-# lib/loops_with_friends/jam_balancer.ex
-defmodule LoopsWithFriends.JamBalancer do
-  # ...
-
-  def jam_capacity?(jam_id) do
-    JamCollection.jam_capacity?(jams(), jam_id)
-  end
-
-  # ...
-end
-~~~
-
-Our server now has all the functionality we need to support multiple clients, and multiple groupings of clients, jamming away. As users come and go, the jams will be balanced to optimize the experience. Be sure to check out the `JamCollection` module [[source][JamCollection source] \| [test][JamCollection test]] if you're interested in seeing the implementations of some data-transforming private functions that we've glossed over here.
-
-## Up Next
-
-If you've noticed the several differences between the listings in the last two posts and the linked source, you've had a peek at changes made to support testing. Elixir promotes treating our tests like any other clients of our production code, and that's what we'll explore in the [next post].
+In the [next post], we'll see that we need to consider timing issues with channel joining in order to ensure the best experience for our users.
 
 
-[previous post]: ./2016-10-05-collaborative-music-loops-in-elixir-and-elm-the-back-end-part-1.html
 [Loops With Friends]: http://loopswithfriends.com/
+[first post]: ./2016-10-05-collaborative-music-loops-in-elixir-and-elm.html
+[previous post]: ./2016-10-06-jamming-with-phoenix-presence.html
 [Agent]: http://elixir-lang.org/getting-started/mix-otp/agent.html
 [Supervision tree]: https://github.com/jeffcole/loops_with_friends/blob/back-end-blog-posts/lib/loops_with_friends.ex#L21
 [JamBalancer source]: https://github.com/jeffcole/loops_with_friends/blob/back-end-blog-posts/lib/loops_with_friends/jam_balancer/server.ex
 [JamBalancer test]: https://github.com/jeffcole/loops_with_friends/blob/back-end-blog-posts/test/lib/loops_with_friends/jam_balancer/server_test.exs
 [JamCollection  source]: https://github.com/jeffcole/loops_with_friends/blob/back-end-blog-posts/lib/loops_with_friends/jam_collection/collection.ex
 [JamCollection test]: https://github.com/jeffcole/loops_with_friends/blob/back-end-blog-posts/test/lib/loops_with_friends/jam_collection/collection_test.exs
-[next post]: ./2016-10-12-collaborative-music-loops-in-elixir-and-elm-healthy-elixir-tests.html
+[next post]: ./2016-10-08-phoenix-channel-race-conditions.html
