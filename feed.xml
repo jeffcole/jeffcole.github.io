@@ -318,7 +318,7 @@
     <link rel="alternate" href="http://blog.url.com/phoenix-channel-race-conditions/"/>
     <id>http://blog.url.com/phoenix-channel-race-conditions/</id>
     <published>2016-10-08T07:21:00-06:00</published>
-    <updated>2017-02-18T11:04:11-07:00</updated>
+    <updated>2017-02-18T14:31:29-07:00</updated>
     <author>
       <name>Article Author</name>
     </author>
@@ -372,7 +372,7 @@
   &lt;span class="c1"&gt;# ...&lt;/span&gt;
 &lt;span class="k"&gt;end&lt;/span&gt;
 &lt;/code&gt;&lt;/pre&gt;
-&lt;p&gt;Our server now has all the functionality we need to support multiple clients, and multiple groupings of clients, jamming away. As users come and go, the jams will be balanced to optimize the experience. Be sure to check out the &lt;code&gt;JamCollection&lt;/code&gt; module [&lt;a href="https://github.com/jeffcole/loops_with_friends/blob/back-end-blog-posts/lib/loops_with_friends/jam_collection/collection.ex"&gt;source&lt;/a&gt; | &lt;a href="https://github.com/jeffcole/loops_with_friends/blob/back-end-blog-posts/test/lib/loops_with_friends/jam_collection/collection_test.exs"&gt;test&lt;/a&gt;] if you're interested in seeing the implementations of some data-transforming private functions that we've glossed over here.&lt;/p&gt;
+&lt;p&gt;Our server now has all the functionality we need to support multiple clients, and multiple groupings of clients, jamming away. As users come and go, the jams will be balanced to optimize the experience.&lt;/p&gt;
 
 &lt;h2 id="testing-one-two"&gt;Testing, One, Two&lt;/h2&gt;
 
