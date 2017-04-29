@@ -94,6 +94,7 @@ There's another technique we can use to help mirror the decoupling that we've bu
 [Mocks Aren't Stubs]: http://martinfowler.com/articles/mocksArentStubs.html
 [`JamBalancer.Server`]: https://github.com/jeffcole/loops_with_friends/blob/back-end-blog-posts/lib/loops_with_friends/jam_balancer/server.ex
 [`JamBalancer.Stub`]: https://github.com/jeffcole/loops_with_friends/blob/back-end-blog-posts/lib/loops_with_friends/jam_balancer/stub.ex
+[`JamChannelTest`]: https://github.com/jeffcole/loops_with_friends/blob/back-end-blog-posts/test/channels/jam_channel_test.exs
 [`config.exs`]: https://github.com/jeffcole/loops_with_friends/blob/back-end-blog-posts/config/config.exs#L29
 [`test.exs`]: https://github.com/jeffcole/loops_with_friends/blob/back-end-blog-posts/config/test.exs#L19
 [`JamChannel`]: https://github.com/jeffcole/loops_with_friends/blob/back-end-blog-posts/web/channels/jam_channel.ex
