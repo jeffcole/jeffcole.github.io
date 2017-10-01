@@ -1,3 +1,13 @@
+well_designed_phoenix_applications:
+  title: 'Well-Designed Phoenix Applications'
+  occurrences:
+    - date: '2017-10-03'
+      event_name: 'Boulder Elixir Meetup'
+      event_url: 'https://www.meetup.com/boulder-elixir/events/237761569/'
+      venue_name: 'MojoTech'
+      venue_url: 'https://www.mojotech.com'
+      slides_url: 'https://gitpitch.com/jeffcole/well-designed-phoenix-apps-talk'
+      
 intro_to_phoenix:
   title: 'Intro to Phoenix'
   occurrences:
