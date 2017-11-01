@@ -1,15 +1,23 @@
+ecto_well_designed:
+  date: '2017-10-30'
+  title: "How Elixir's Ecto Promotes Well-Designed Applications"
+  url: 'https://blog.mojotech.com/how-elixir-ecto-promotes-well-designed-applications'
+
 chrome_extensions:
   date: '2016-05-16'
   title: 'Making Chrome Extensions is Easy with Yeoman'
   url: 'https://www.foraker.com/blog/making-chrome-extensions-with-yeoman'
+
 repositories:
   date: '2016-02-05'
   title: 'The Quest for Simple Active Record Repositories'
   url: 'https://www.foraker.com/blog/the-quest-for-simple-active-record-repositories'
+
 ddd:
   date: '2015-07-24'
   title: 'Domain-Driven Design'
   url: 'https://www.foraker.com/blog/domain-driven-design'
+  
 dotfiles:
   date: '2015-03-06'
   title: 'Get Your Dotfiles Under Control'
