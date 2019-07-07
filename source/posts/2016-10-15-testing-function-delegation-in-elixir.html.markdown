@@ -65,7 +65,7 @@ You might notice in the [`ServerTest`][JamBalancer.ServerTest] that for some tes
 The techniques outlined in the last few posts have made building and testing the back end for Loops With Friends in Elixir a fun and rewarding experience. We've learned how to keep our tests on equal footing with our production code, how to isolate our tests from the dependencies of the function under test, and how to test function delegation in a simple way without increasing coupling.
 
 
-[Loops With Friends]: http://loopswithfriends.com/
+[Loops With Friends]: http://loops-with-friends.herokuapp.com/
 [first post]: ./2016-10-05-collaborative-music-loops-in-elixir-and-elm.html
 [Testing Function Delegation]: https://dockyard.com/blog/2016/03/24/testing-function-delegation-in-elixir-without-stubbing
 [continued]: ./2016-10-14-using-stubs-to-isolate-elixir-tests.html#you-put-a-mock-in-my-stub

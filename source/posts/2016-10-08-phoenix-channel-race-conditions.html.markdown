@@ -62,7 +62,7 @@ Our server now has all the functionality we need to support multiple clients, an
 With our back end built out, you might be wondering how to approach testing it. Elixir promotes treating our tests like any other clients of our production code, and that's what we'll begin to explore in the [next post].
 
 
-[Loops With Friends]: http://loopswithfriends.com/
+[Loops With Friends]: http://loops-with-friends.herokuapp.com/
 [first post]: ./2016-10-05-collaborative-music-loops-in-elixir-and-elm.html
 [previous post]: ./2016-10-07-talk-to-my-elixir-agent.html
 [JamCollection  source]: https://github.com/jeffcole/loops_with_friends/blob/back-end-blog-posts/lib/loops_with_friends/jam_collection/collection.ex

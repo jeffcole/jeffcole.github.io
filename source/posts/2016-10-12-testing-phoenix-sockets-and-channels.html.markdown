@@ -79,7 +79,7 @@ These conveniences make it easy to hook into the lifecycle of our channel and ve
 In the [next post] we'll move on to testing the components of our application that make it unique.
 
 
-[Loops With Friends]: http://loopswithfriends.com/
+[Loops With Friends]: http://loops-with-friends.herokuapp.com/
 [first post]: ./2016-10-05-collaborative-music-loops-in-elixir-and-elm.html
 [jam balancing]: ./2016-10-07-talk-to-my-elixir-agent.html
 [presence tracking, loop cycling, and event broadcasting]: ./2016-10-06-jamming-with-phoenix-presence.html

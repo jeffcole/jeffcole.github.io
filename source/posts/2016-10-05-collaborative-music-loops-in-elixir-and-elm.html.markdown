@@ -70,7 +70,7 @@ Continue to the [next post] to see how Phoenix Presence allows us to easily trac
 [Elixir]: http://elixir-lang.org/
 [Phoenix]: http://www.phoenixframework.org/
 [Elm]: http://elm-lang.org/
-[Loops With Friends]: http://loopswithfriends.com/
+[Loops With Friends]: http://loops-with-friends.herokuapp.com/
 [Elixir Guides]: http://elixir-lang.org/getting-started/introduction.html
 [Endpoint source]: https://github.com/jeffcole/loops_with_friends/blob/back-end-blog-posts/lib/loops_with_friends/endpoint.ex
 [UserSocket source]: https://github.com/jeffcole/loops_with_friends/blob/back-end-blog-posts/web/channels/user_socket.ex

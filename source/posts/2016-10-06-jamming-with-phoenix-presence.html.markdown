@@ -107,7 +107,7 @@ We'll run into problems, however, once our little app goes viral and there are a
 
 
 [first post]: ./2016-10-05-collaborative-music-loops-in-elixir-and-elm.html
-[Loops With Friends]: http://loopswithfriends.com/
+[Loops With Friends]: http://loops-with-friends.herokuapp.com/
 [JamChannel source]: https://github.com/jeffcole/loops_with_friends/blob/back-end-blog-posts/web/channels/jam_channel.ex
 [JamChannel test]: https://github.com/jeffcole/loops_with_friends/blob/back-end-blog-posts/test/channels/jam_channel_test.exs
 [Presence]: https://dockyard.com/blog/2016/03/25/what-makes-phoenix-presence-special-sneak-peek

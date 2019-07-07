@@ -51,7 +51,7 @@ This use of [dependency injection] also embodies the good testing practice of tr
 In the [next post], we'll look at the difference between stubs and mocks in Elixir, and get some direction on their use by the language's creator.
 
 
-[Loops With Friends]: http://loopswithfriends.com/
+[Loops With Friends]: http://loops-with-friends.herokuapp.com/
 [first post]: ./2016-10-05-collaborative-music-loops-in-elixir-and-elm.html
 [previously]: ./2016-10-07-talk-to-my-elixir-agent.html
 [Agent naming]: https://groups.google.com/d/msg/elixir-lang-talk/TYBK6C7xHdg/Fv5o_CKvlSgJ

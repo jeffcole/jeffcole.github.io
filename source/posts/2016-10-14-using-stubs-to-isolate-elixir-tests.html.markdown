@@ -87,7 +87,7 @@ Additionally, I followed José's example of making the contracts for balancers a
 There's another technique we can use to help mirror the decoupling that we've built into our production code in our tests — and we'll explore it in the [next post].
 
 
-[Loops With Friends]: http://loopswithfriends.com/
+[Loops With Friends]: http://loops-with-friends.herokuapp.com/
 [first post]: ./2016-10-05-collaborative-music-loops-in-elixir-and-elm.html
 [test pyramid]: http://martinfowler.com/bliki/TestPyramid.html
 [Mocks and Explicit Contracts]: http://blog.plataformatec.com.br/2015/10/mocks-and-explicit-contracts/

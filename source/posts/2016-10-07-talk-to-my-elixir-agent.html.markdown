@@ -190,7 +190,7 @@ See the full `JamCollection` module [[source][JamCollection source] \| [test][Ja
 In the [next post], we'll see that we need to consider timing issues with channel joining in order to ensure the best experience for our users.
 
 
-[Loops With Friends]: http://loopswithfriends.com/
+[Loops With Friends]: http://loops-with-friends.herokuapp.com/
 [first post]: ./2016-10-05-collaborative-music-loops-in-elixir-and-elm.html
 [previous post]: ./2016-10-06-jamming-with-phoenix-presence.html
 [Agent]: http://elixir-lang.org/getting-started/mix-otp/agent.html
