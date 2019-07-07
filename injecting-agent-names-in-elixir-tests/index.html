@@ -50,7 +50,7 @@
         </p>
         
         <blockquote>
-          <p>This post is one in a series about building a collaborative music app in Elixir and Elm called <a href="http://loopswithfriends.com/">Loops With Friends</a>. If you'd like to catch up, visit the <a href="../collaborative-music-loops-in-elixir-and-elm/">first post</a> in the series to learn all about it!</p>
+          <p>This post is one in a series about building a collaborative music app in Elixir and Elm called <a href="http://loops-with-friends.herokuapp.com/">Loops With Friends</a>. If you'd like to catch up, visit the <a href="../collaborative-music-loops-in-elixir-and-elm/">first post</a> in the series to learn all about it!</p>
         </blockquote>
         
         <p>We saw <a href="../talk-to-my-elixir-agent/">previously</a> in this series how to leverage an Elixir agent as a stateful representation of our collection of jams at any given time. One gotcha that I ran into as I was testing the balancer was that its tests would fail when I ran the full test suite, but not when I ran only the tests for the balancer module. After digging up <a href="https://groups.google.com/d/msg/elixir-lang-talk/TYBK6C7xHdg/Fv5o_CKvlSgJ">a thread post by José Valim</a>, I realized that the issue was due to both the unit and integration-level tests using the same balancer process. I was able to fix it by injecting an agent name into the <code>start_link</code> function of the <a href="https://github.com/jeffcole/loops_with_friends/blob/back-end-blog-posts/lib/loops_with_friends/jam_balancer/server.ex"><code>JamBalancer</code></a>.</p>
@@ -79,7 +79,7 @@
         <a href="mailto:jeffreydonaldcole@gmail.com"><i class='fa fa-fw fa-2x fa-envelope' title='Email'></i>
         </a>
       </p>
-      <p>© 2017 Jeff Cole</p>
+      <p>© 2016–present Jeff Cole</p>
     </footer>
     <script src="../assets/javascripts/application.js"></script>
   </body>
