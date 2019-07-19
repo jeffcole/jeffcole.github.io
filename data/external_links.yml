@@ -1,7 +1,7 @@
 ecto_well_designed:
   date: '2017-10-30'
   title: "How Elixir's Ecto Promotes Well-Designed Applications"
-  url: 'https://blog.mojotech.com/how-elixir-ecto-promotes-well-designed-applications'
+  url: 'https://www.mojotech.com/blog/how-elixir-ecto-promotes-well-designed-applications'
 
 chrome_extensions:
   date: '2016-05-16'
@@ -17,7 +17,7 @@ ddd:
   date: '2015-07-24'
   title: 'Domain-Driven Design'
   url: 'https://www.foraker.com/blog/domain-driven-design'
-  
+
 dotfiles:
   date: '2015-03-06'
   title: 'Get Your Dotfiles Under Control'
