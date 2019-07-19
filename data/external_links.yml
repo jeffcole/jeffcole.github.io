@@ -1,3 +1,8 @@
+practices_and_tools:
+  date: '2019-07-09'
+  title: "Practices and Tools that Make for a Good Project"
+  url: 'https://www.mojotech.com/blog/good-software-project'
+
 ecto_well_designed:
   date: '2017-10-30'
   title: "How Elixir's Ecto Promotes Well-Designed Applications"
