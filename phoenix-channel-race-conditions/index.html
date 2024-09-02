@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset='utf-8'>
+<meta content='IE=edge,chrome=1' http-equiv='X-UA-Compatible'>
+<meta content='width=device-width, initial-scale=1' name='viewport'>
+<meta content='I write about building things.' name='description'>
+<meta content='jeff cole' name='keywords'>
+<meta content='Jeff Cole - Phoenix Channel Race Conditions' property='og:title'>
+<meta content='article' property='og:type'>
+<meta content='http://gravatar.com/avatar/b510f21d7375664c0425d07417016afd.jpg' property='og:image'>
+<meta content='https://jeffcole.github.io/phoenix-channel-race-conditions/' property='og:url'>
+<title>Jeff Cole - Phoenix Channel Race Conditions</title>
+<link href='https://jeffcole.github.io/phoenix-channel-race-conditions/' rel='canonical'>
+<link href='//fonts.googleapis.com/css?family=Lusitana:400,700' rel='stylesheet' type='text/css'>
+<link href='//fonts.googleapis.com/css?family=Merriweather:400,300,300italic,400italic,700,700italic,900,900italic' rel='stylesheet' type='text/css'>
+<link href='//fonts.googleapis.com/css?family=Merriweather+Sans:400,300,300italic,400italic,700italic,700,800,800italic' rel='stylesheet' type='text/css'>
+<link href="../assets/stylesheets/application.css" rel="stylesheet" />
+</head>
+<body class='phoenix-channel-race-conditions phoenix-channel-race-conditions_index type-system-serif'>
+<header>
+<h1>
+Jeff Cole
+<a href='/' title='Home'>
+<i class='fa fa-fw fa-home'></i>
+</a>
+</h1>
+</header>
+<main>
+<section class='intro'>
+<h3 class='tagline'>
+<span>I build things with computers,</span>
+<span>for people.</span>
+</h3>
+<p class='contact'>
+<a href="https://github.com/jeffcole"><i class='fa fa-fw fa-2x fa-github' title='GitHub'></i>
+</a><a href="https://www.linkedin.com/in/jeffreydcole"><i class='fa fa-fw fa-2x fa-linkedin' title='LinkedIn'></i>
+</a><a href="https://twitter.com/obscurehobo"><i class='fa fa-fw fa-2x fa-twitter' title='Twitter'></i>
+</a><a href="mailto:jeffreydonaldcole@gmail.com"><i class='fa fa-fw fa-2x fa-envelope' title='Email'></i>
+</a></p>
+
+</section>
+<article>
+<h1>Phoenix Channel Race Conditions</h1>
+<p class='date'>
+October  8, 2016
+</p>
+
+<blockquote>
+  <p>This post is one in a series about building a collaborative music app in Elixir and Elm called <a href="http://loops-with-friends.herokuapp.com/">Loops With Friends</a>. If you'd like to catch up, visit the <a href="../collaborative-music-loops-in-elixir-and-elm/">first post</a> in the series to learn all about it!</p>
+</blockquote>
+
+<p>In the <a href="../talk-to-my-elixir-agent/">previous post</a>, we set up the state of our collaborative music app <a href="http://loops-with-friends.herokuapp.com/">Loops With Friends</a> in an Elixir OTP server. We created an API that allows us to automatically balance the populations of multiple "jams," by telling each arriving user which jam they should join.</p>
+
+<p>Things are looking pretty good. There's one hiccup though, and it's all in the timing.</p>
+
+<h2 id="preventing-overflowing-jams">Preventing Overflowing Jams</h2>
+
+<p>We're sending the current jam ID to the client on initial page load along with the client-side code. Then the client runs that code and finally initiates the WebSocket connection with the server. In the time interval between when the server retrieves the current jam, and the client tries to join that jam, the jam could have filled up!</p>
+
+<p>For example, imagine that two users load the app at exactly the same time. Continue to imagine that the currently filling jam has six users in it (remember that the maximum is seven users per jam). Both users get this same jam ID. But one user initiates the socket connection just <em>slightly</em> before the other. What happens to the second user?</p>
+
+<p>As it stands, they'll go right ahead and join the channel. Since at that point we've run out of music loops, bad things will happen. Despite the fact that our balancer is creating new jams as users arrive, we need a check whenever someone tries to join a channel. Here are the changes.</p>
+
+<pre class="highlight elixir"><code><span class="c1"># web/channels/jam_channel.ex</span>&#x000A;<span class="k">defmodule</span> <span class="no">LoopsWithFriends</span><span class="o">.</span><span class="no">JamChannel</span> <span class="k">do</span>&#x000A;  <span class="c1"># ...</span>&#x000A;&#x000A;  <span class="k">def</span> <span class="n">join</span><span class="p">(</span><span class="sd">"</span><span class="s2">jams:"</span> <span class="o">&lt;&gt;</span> <span class="n">jam_id</span><span class="p">,</span> <span class="n">_params</span><span class="p">,</span> <span class="n">socket</span><span class="p">)</span> <span class="k">do</span>&#x000A;    <span class="k">if</span> <span class="no">JamBalancer</span><span class="o">.</span><span class="n">jam_capacity?</span><span class="p">(</span><span class="n">jam_id</span><span class="p">)</span> <span class="k">do</span>&#x000A;      <span class="c1"># ...</span>&#x000A;&#x000A;      <span class="p">{</span><span class="ss">:ok</span><span class="p">,</span>&#x000A;       <span class="p">%{</span><span class="ss">user_id:</span> <span class="n">socket</span><span class="o">.</span><span class="n">assigns</span><span class="o">.</span><span class="n">user_id</span><span class="p">},</span>&#x000A;       <span class="n">assign</span><span class="p">(</span><span class="n">socket</span><span class="p">,</span> <span class="ss">:jam_id</span><span class="p">,</span> <span class="n">jam_id</span><span class="p">)}</span>&#x000A;    <span class="k">else</span>&#x000A;      <span class="p">{</span><span class="ss">:error</span><span class="p">,</span>&#x000A;       <span class="p">%{</span><span class="ss">new_topic:</span> <span class="sd">"</span><span class="s2">jams:</span><span class="si">#{</span><span class="nv">@jam_balancer</span><span class="o">.</span><span class="n">current_jam</span><span class="si">}</span><span class="s2">"</span><span class="p">}}</span>&#x000A;    <span class="k">end</span>&#x000A;  <span class="k">end</span>&#x000A;&#x000A;  <span class="c1"># ...</span>&#x000A;<span class="k">end</span>&#x000A;</code></pre>
+<p>We ask the balancer if the jam the user is trying to join has capacity, and if so, we let them in. If the jam is full, we return an error and a new topic for them to join, leaving the rejoin attempt up to the client. The <code>jam_capacity?</code> function is once again delegated from the balancer to the collection.</p>
+
+<pre class="highlight elixir"><code><span class="c1"># lib/loops_with_friends/jam_balancer.ex</span>&#x000A;<span class="k">defmodule</span> <span class="no">LoopsWithFriends</span><span class="o">.</span><span class="no">JamBalancer</span> <span class="k">do</span>&#x000A;  <span class="c1"># ...</span>&#x000A;&#x000A;  <span class="k">def</span> <span class="n">jam_capacity?</span><span class="p">(</span><span class="n">jam_id</span><span class="p">)</span> <span class="k">do</span>&#x000A;    <span class="no">JamCollection</span><span class="o">.</span><span class="n">jam_capacity?</span><span class="p">(</span><span class="n">jams</span><span class="p">(),</span> <span class="n">jam_id</span><span class="p">)</span>&#x000A;  <span class="k">end</span>&#x000A;&#x000A;  <span class="c1"># ...</span>&#x000A;<span class="k">end</span>&#x000A;</code></pre>
+<p>Our server now has all the functionality we need to support multiple clients, and multiple groupings of clients, jamming away. As users come and go, the jams will be balanced to optimize the experience.</p>
+
+<h2 id="testing-one-two">Testing, One, Two</h2>
+
+<p>With our back end built out, you might be wondering how to approach testing it. Elixir promotes treating our tests like any other clients of our production code, and that's what we'll begin to explore in the <a href="../testing-phoenix-sockets-and-channels/">next post</a>.</p>
+
+
+<div class='share'><a href="http://twitter.com/home?status=Read+%27Phoenix+Channel+Race+Conditions%27+%40obscurehobo+https%3A%2F%2Fjeffcole.github.io%2Fphoenix-channel-race-conditions%2F" target="_blank"><img src="../assets/images/icons/twitter.svg" alt="Twitter" /><span>Tweet This</span></a></div>
+</article>
+
+</main>
+<footer>
+<a class='home' href='/' title='Home'>Home</a>
+<p class='contact'>
+<a href="https://github.com/jeffcole"><i class='fa fa-fw fa-2x fa-github' title='GitHub'></i>
+</a><a href="https://www.linkedin.com/in/jeffreydcole"><i class='fa fa-fw fa-2x fa-linkedin' title='LinkedIn'></i>
+</a><a href="https://twitter.com/obscurehobo"><i class='fa fa-fw fa-2x fa-twitter' title='Twitter'></i>
+</a><a href="mailto:jeffreydonaldcole@gmail.com"><i class='fa fa-fw fa-2x fa-envelope' title='Email'></i>
+</a></p>
+
+<p>© 2016–present Jeff Cole</p>
+</footer>
+<script src="../assets/javascripts/application.js"></script>
+</body>
+</html>

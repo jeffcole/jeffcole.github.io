@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset='utf-8'>
+<meta content='IE=edge,chrome=1' http-equiv='X-UA-Compatible'>
+<meta content='width=device-width, initial-scale=1' name='viewport'>
+<meta content='I write about building things.' name='description'>
+<meta content='jeff cole' name='keywords'>
+<meta content='Jeff Cole - Using Stubs to Isolate Elixir Tests' property='og:title'>
+<meta content='article' property='og:type'>
+<meta content='http://gravatar.com/avatar/b510f21d7375664c0425d07417016afd.jpg' property='og:image'>
+<meta content='https://jeffcole.github.io/using-stubs-to-isolate-elixir-tests/' property='og:url'>
+<title>Jeff Cole - Using Stubs to Isolate Elixir Tests</title>
+<link href='https://jeffcole.github.io/using-stubs-to-isolate-elixir-tests/' rel='canonical'>
+<link href='//fonts.googleapis.com/css?family=Lusitana:400,700' rel='stylesheet' type='text/css'>
+<link href='//fonts.googleapis.com/css?family=Merriweather:400,300,300italic,400italic,700,700italic,900,900italic' rel='stylesheet' type='text/css'>
+<link href='//fonts.googleapis.com/css?family=Merriweather+Sans:400,300,300italic,400italic,700italic,700,800,800italic' rel='stylesheet' type='text/css'>
+<link href="../assets/stylesheets/application.css" rel="stylesheet" />
+</head>
+<body class='type-system-serif using-stubs-to-isolate-elixir-tests using-stubs-to-isolate-elixir-tests_index'>
+<header>
+<h1>
+Jeff Cole
+<a href='/' title='Home'>
+<i class='fa fa-fw fa-home'></i>
+</a>
+</h1>
+</header>
+<main>
+<section class='intro'>
+<h3 class='tagline'>
+<span>I build things with computers,</span>
+<span>for people.</span>
+</h3>
+<p class='contact'>
+<a href="https://github.com/jeffcole"><i class='fa fa-fw fa-2x fa-github' title='GitHub'></i>
+</a><a href="https://www.linkedin.com/in/jeffreydcole"><i class='fa fa-fw fa-2x fa-linkedin' title='LinkedIn'></i>
+</a><a href="https://twitter.com/obscurehobo"><i class='fa fa-fw fa-2x fa-twitter' title='Twitter'></i>
+</a><a href="mailto:jeffreydonaldcole@gmail.com"><i class='fa fa-fw fa-2x fa-envelope' title='Email'></i>
+</a></p>
+
+</section>
+<article>
+<h1>Using Stubs to Isolate Elixir Tests</h1>
+<p class='date'>
+October 14, 2016
+</p>
+
+<blockquote>
+  <p>This post is one in a series about building a collaborative music app in Elixir and Elm called <a href="http://loops-with-friends.herokuapp.com/">Loops With Friends</a>. If you'd like to catch up, visit the <a href="../collaborative-music-loops-in-elixir-and-elm/">first post</a> in the series to learn all about it!</p>
+</blockquote>
+
+<p>You may have noticed in the previous posts in this series that the module names in the source links sometimes differ slightly from those shown in the posts' code listings. It's time to address why that is, via a discussion of isolated testing.</p>
+
+<p>If you come from an object-oriented programming background, you may have had difficult experiences related to testing objects alongside their dependencies. When objects are tightly coupled, changes to one object can cause the tests for other objects to fail. This can result in a painful cycle of needing to change many different tests whenever a change to a single object is required.</p>
+
+<p>The same scenario is possible in the functional world — the only difference is that we have modules and functions instead of objects and methods. The solution is to test and develop our application components in isolation as much as possible, while being sure to test the integration of these components separately. The <a href="http://martinfowler.com/bliki/TestPyramid.html">test pyramid</a> guides us in the direction of writing more focused, isolated, and fast unit tests, than interdependent and slower integration tests.</p>
+
+<p>José Valim wrote an excellent post called <a href="http://blog.plataformatec.com.br/2015/10/mocks-and-explicit-contracts/">Mocks and Explicit Contracts</a> on how we can introduce new modules into our applications for the purposes of clarifying our code's responsibilities and isolating our tests.</p>
+
+<blockquote>
+  <h4 id="a-nameyou-put-a-mock-in-my-stuba-you-put-a-mock-in-my-stub"><a name="you-put-a-mock-in-my-stub"></a> You put a mock in my stub!</h4>
+  <p>José's use of the term "mock" deviates a bit from Martin Fowler's <a href="http://martinfowler.com/articles/mocksArentStubs.html">delineation</a> of the differences between "mocks" and "stubs," in that to me, his usage appears closer to what Martin refers to a "stub." I find Martin's breakdown helpful, so although José calls them "mocks," I'll refer to these entities as "stubs."</p>
+</blockquote>
+
+<p>In our application, we can use José's technique to isolate the <code>JamChannelTest</code> from the implementation of the <code>JamBalancer</code>, a module upon which the channel depends. First, we'll place our balancer implementation in a submodule called <a href="https://github.com/jeffcole/loops_with_friends/blob/back-end-blog-posts/lib/loops_with_friends/jam_balancer/server.ex"><code>JamBalancer.Server</code></a> (so named as an allusion to the fact that our balancer's <code>Agent</code> is a <code>GenServer</code> under the covers). Then we'll create another module, <a href="https://github.com/jeffcole/loops_with_friends/blob/back-end-blog-posts/lib/loops_with_friends/jam_balancer/stub.ex"><code>JamBalancer.Stub</code></a>, where we'll put the code that we want our <a href="https://github.com/jeffcole/loops_with_friends/blob/back-end-blog-posts/test/channels/jam_channel_test.exs"><code>JamChannelTest</code></a> to run whenever it needs balancer functionality.</p>
+
+<p>For example, here's the stub code for the <code>jam_capacity?</code> function. We're pattern matching on particular argument values for the <code>jam_id</code>, so that we can test what happens in the channel when the balancer indicates that a jam is full.</p>
+
+<pre class="highlight elixir"><code><span class="c1"># lib/loops_with_friends/jam_balancer/stub.ex</span>&#x000A;<span class="k">defmodule</span> <span class="no">LoopsWithFriends</span><span class="o">.</span><span class="no">JamBalancer</span><span class="o">.</span><span class="no">Stub</span> <span class="k">do</span>&#x000A;  <span class="c1"># ...</span>&#x000A;&#x000A;  <span class="k">def</span> <span class="n">jam_capacity?</span><span class="p">(</span><span class="n">_agent</span> <span class="p">\\</span> <span class="nv">@name</span><span class="p">,</span> <span class="n">jam_id</span><span class="p">)</span>&#x000A;  <span class="k">def</span> <span class="n">jam_capacity?</span><span class="p">(</span><span class="n">_agent</span><span class="p">,</span> <span class="sd">"</span><span class="s2">jam-1"</span><span class="p">),</span> <span class="k">do</span><span class="p">:</span> <span class="no">true</span>&#x000A;  <span class="k">def</span> <span class="n">jam_capacity?</span><span class="p">(</span><span class="n">_agent</span><span class="p">,</span> <span class="sd">"</span><span class="s2">full-jam"</span><span class="p">),</span> <span class="k">do</span><span class="p">:</span> <span class="no">false</span>&#x000A;&#x000A;  <span class="c1"># ...</span>&#x000A;<span class="k">end</span>&#x000A;</code></pre>
+<p>The next thing we need to do is tell our application when to use our <code>Server</code> and when to use our <code>Stub</code>. We accomplish this by setting the <code>Server</code> as the default in <a href="https://github.com/jeffcole/loops_with_friends/blob/back-end-blog-posts/config/config.exs#L29"><code>config.exs</code></a>, so that it will be used in both the production and development environments.</p>
+
+<pre class="highlight elixir"><code><span class="c1"># config/config.exs</span>&#x000A;<span class="c1"># ...</span>&#x000A;&#x000A;<span class="n">config</span> <span class="ss">:loops_with_friends</span><span class="p">,</span> <span class="ss">:jam_balancer</span><span class="p">,</span>&#x000A;  <span class="no">LoopsWithFriends</span><span class="o">.</span><span class="no">JamBalancer</span><span class="o">.</span><span class="no">Server</span>&#x000A;&#x000A;<span class="c1"># ...</span>&#x000A;</code></pre>
+<p>Then, we tell the test environment to use the <code>Stub</code> in <a href="https://github.com/jeffcole/loops_with_friends/blob/back-end-blog-posts/config/test.exs#L19"><code>test.exs</code></a>.</p>
+
+<pre class="highlight elixir"><code><span class="c1"># config/test.exs</span>&#x000A;<span class="c1"># ...</span>&#x000A;&#x000A;<span class="n">config</span> <span class="ss">:loops_with_friends</span><span class="p">,</span> <span class="ss">:jam_balancer</span><span class="p">,</span>&#x000A;  <span class="no">LoopsWithFriends</span><span class="o">.</span><span class="no">JamBalancer</span><span class="o">.</span><span class="no">Stub</span>&#x000A;&#x000A;<span class="c1"># ...</span>&#x000A;</code></pre>
+<p>Finally, we instruct the <a href="https://github.com/jeffcole/loops_with_friends/blob/back-end-blog-posts/web/channels/jam_channel.ex"><code>JamChannel</code></a> to load the proper balancer for the current environment into a module attribute, rather than reference a module name directly.</p>
+
+<pre class="highlight elixir"><code><span class="c1"># web/channels/jam_channel.ex</span>&#x000A;<span class="k">defmodule</span> <span class="no">LoopsWithFriends</span><span class="o">.</span><span class="no">JamChannel</span> <span class="k">do</span>&#x000A;  <span class="c1"># ...</span>&#x000A;&#x000A;  <span class="nv">@jam_balancer</span> <span class="no">Application</span><span class="o">.</span><span class="n">get_env</span><span class="p">(</span>&#x000A;    <span class="ss">:loops_with_friends</span><span class="p">,</span>&#x000A;    <span class="ss">:jam_balancer</span>&#x000A;  <span class="p">)</span>&#x000A;&#x000A;  <span class="k">def</span> <span class="n">join</span><span class="p">(</span><span class="sd">"</span><span class="s2">jams:"</span> <span class="o">&lt;&gt;</span> <span class="n">jam_id</span><span class="p">,</span> <span class="n">_params</span><span class="p">,</span> <span class="n">socket</span><span class="p">)</span> <span class="k">do</span>&#x000A;    <span class="k">if</span> <span class="nv">@jam_balancer</span><span class="o">.</span><span class="n">jam_capacity?</span><span class="p">(</span><span class="n">jam_id</span><span class="p">)</span> <span class="k">do</span>&#x000A;&#x000A;  <span class="c1"># ...</span>&#x000A;</code></pre>
+<p>Now the channel will use the <code>Server</code> in production and development, while it will use the <code>Stub</code> in the test environment.</p>
+
+<p>When our channel tests don't run any of our actual balancer code, they are isolated from changes to the balancer. This makes our tests more resilient to change, and therefore less brittle. Testing in this style can also lead you to naturally design modules and functions that are less coupled, resulting in an application that is easier to understand in pieces, and more pleasant to work on.</p>
+
+<p>This technique was also useful when testing the balancer in isolation from the jam collection. I created a <a href="https://github.com/jeffcole/loops_with_friends/blob/back-end-blog-posts/lib/loops_with_friends/jam_collection/stub.ex"><code>JamCollection.Stub</code></a> module for use in the test environment, and placed the collection implementation in the <a href="https://github.com/jeffcole/loops_with_friends/blob/back-end-blog-posts/lib/loops_with_friends/jam_collection/collection.ex"><code>JamCollection.Collection</code></a> module.</p>
+
+<p>Additionally, I followed José's example of making the contracts for balancers and collections explicit by using <a href="http://elixir-lang.org/getting-started/typespecs-and-behaviours.html#behaviours">Elixir behaviours</a>, as seen in the <a href="https://github.com/jeffcole/loops_with_friends/blob/back-end-blog-posts/lib/loops_with_friends/jam_collection.ex"><code>JamCollection</code></a> module.</p>
+
+<p>There's another technique we can use to help mirror the decoupling that we've built into our production code in our tests — and we'll explore it in the <a href="../testing-function-delegation-in-elixir/">next post</a>.</p>
+
+
+<div class='share'><a href="http://twitter.com/home?status=Read+%27Using+Stubs+to+Isolate+Elixir+Tests%27+%40obscurehobo+https%3A%2F%2Fjeffcole.github.io%2Fusing-stubs-to-isolate-elixir-tests%2F" target="_blank"><img src="../assets/images/icons/twitter.svg" alt="Twitter" /><span>Tweet This</span></a></div>
+</article>
+
+</main>
+<footer>
+<a class='home' href='/' title='Home'>Home</a>
+<p class='contact'>
+<a href="https://github.com/jeffcole"><i class='fa fa-fw fa-2x fa-github' title='GitHub'></i>
+</a><a href="https://www.linkedin.com/in/jeffreydcole"><i class='fa fa-fw fa-2x fa-linkedin' title='LinkedIn'></i>
+</a><a href="https://twitter.com/obscurehobo"><i class='fa fa-fw fa-2x fa-twitter' title='Twitter'></i>
+</a><a href="mailto:jeffreydonaldcole@gmail.com"><i class='fa fa-fw fa-2x fa-envelope' title='Email'></i>
+</a></p>
+
+<p>© 2016–present Jeff Cole</p>
+</footer>
+<script src="../assets/javascripts/application.js"></script>
+</body>
+</html>

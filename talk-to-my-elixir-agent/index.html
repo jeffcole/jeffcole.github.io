@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset='utf-8'>
+<meta content='IE=edge,chrome=1' http-equiv='X-UA-Compatible'>
+<meta content='width=device-width, initial-scale=1' name='viewport'>
+<meta content='I write about building things.' name='description'>
+<meta content='jeff cole' name='keywords'>
+<meta content='Jeff Cole - Talk to My (Elixir) Agent' property='og:title'>
+<meta content='article' property='og:type'>
+<meta content='http://gravatar.com/avatar/b510f21d7375664c0425d07417016afd.jpg' property='og:image'>
+<meta content='https://jeffcole.github.io/talk-to-my-elixir-agent/' property='og:url'>
+<title>Jeff Cole - Talk to My (Elixir) Agent</title>
+<link href='https://jeffcole.github.io/talk-to-my-elixir-agent/' rel='canonical'>
+<link href='//fonts.googleapis.com/css?family=Lusitana:400,700' rel='stylesheet' type='text/css'>
+<link href='//fonts.googleapis.com/css?family=Merriweather:400,300,300italic,400italic,700,700italic,900,900italic' rel='stylesheet' type='text/css'>
+<link href='//fonts.googleapis.com/css?family=Merriweather+Sans:400,300,300italic,400italic,700italic,700,800,800italic' rel='stylesheet' type='text/css'>
+<link href="../assets/stylesheets/application.css" rel="stylesheet" />
+</head>
+<body class='talk-to-my-elixir-agent talk-to-my-elixir-agent_index type-system-serif'>
+<header>
+<h1>
+Jeff Cole
+<a href='/' title='Home'>
+<i class='fa fa-fw fa-home'></i>
+</a>
+</h1>
+</header>
+<main>
+<section class='intro'>
+<h3 class='tagline'>
+<span>I build things with computers,</span>
+<span>for people.</span>
+</h3>
+<p class='contact'>
+<a href="https://github.com/jeffcole"><i class='fa fa-fw fa-2x fa-github' title='GitHub'></i>
+</a><a href="https://www.linkedin.com/in/jeffreydcole"><i class='fa fa-fw fa-2x fa-linkedin' title='LinkedIn'></i>
+</a><a href="https://twitter.com/obscurehobo"><i class='fa fa-fw fa-2x fa-twitter' title='Twitter'></i>
+</a><a href="mailto:jeffreydonaldcole@gmail.com"><i class='fa fa-fw fa-2x fa-envelope' title='Email'></i>
+</a></p>
+
+</section>
+<article>
+<h1>Talk to My (Elixir) Agent</h1>
+<p class='date'>
+October  7, 2016
+</p>
+
+<blockquote>
+  <p>This post is one in a series about building a collaborative music app in Elixir and Elm called <a href="http://loops-with-friends.herokuapp.com/">Loops With Friends</a>. If you'd like to catch up, visit the <a href="../collaborative-music-loops-in-elixir-and-elm/">first post</a> in the series to learn all about it!</p>
+</blockquote>
+
+<p>In the <a href="../jamming-with-phoenix-presence/">previous post</a> in this series, we looked at how Elixir and Phoenix make supporting multiple client connections in our application straightforward.</p>
+
+<p>The last and most complex feature on the back end of the <a href="http://loops-with-friends.herokuapp.com/">Loops With Friends</a> app is the balancing of the users in each channel topic, or "jam." This is where we depart from Phoenix's conveniences and start using an Elixir OTP server to hold application state.</p>
+
+<h2 id="user-experience">User Experience</h2>
+
+<p>The desired behavior is for users to be oblivious to the management of separate jams. When a user visits the app, the server should instruct the user's client which jam to join, and create new jams as each one fills up with users. The experience for the user will be near-instantaneous entry into a jam session without the need to manually join or switch channels on their own.</p>
+
+<p>Additionally, as existing users leave the app and new ones visit, we should slot each new user into the most interesting jam at that time. This means telling their clients to join the jam with the most users currently jamming, so long as adding one more user wouldn't overflow the jam.</p>
+
+<h2 id="holding-state">Holding State</h2>
+
+<p>What we need is something to represent the state of all of our jams at any given time. For this we'll use an Elixir <a href="http://elixir-lang.org/getting-started/mix-otp/agent.html">Agent</a>. The agent will hold our state for us, and also provide a thin interface into the management and querying of that state. Let's put it in a module called <code>JamBalancer</code>.</p>
+
+<p>The "thin interface" of the balancer is an important idiom. To keep our modules from taking on too many responsibilities and growing overwhelmingly large, we want to identify the responsibilities we need and then separate them out into different modules. The management of the state of our jams is a responsibility sufficient enough to stand on its own, so we limit the <code>JamBalancer</code> to this role.</p>
+
+<p>Given the state of our jams at any time, provided by the jam balancer, we should be able to determine what to do with new users arriving at the app. This allows us to implement a new <em>stateless</em> module to do the hard work of providing us with the answers to our questions about that state. Let's call this new module <code>JamCollection</code>.</p>
+
+<blockquote>
+  <p>Note that to make our discussion of the back end implementation as clear as possible, the listings in this post deviate a bit from those in the source links, by removing affordances made for testing. I'll follow up this post with another on how I've tested the back end.</p>
+</blockquote>
+
+<p>With our design in hand, let's explore how these modules come together to provide our jam balancing functionality.</p>
+
+<h2 id="balancing-jams">Balancing Jams</h2>
+
+<p>To ensure that our jam balancer is available to our calling code, we'll need to start it up along with the application. Let's add it as a worker to our supervision tree [<a href="https://github.com/jeffcole/loops_with_friends/blob/back-end-blog-posts/lib/loops_with_friends.ex#L21">source</a>].</p>
+
+<pre class="highlight elixir"><code><span class="c1"># lib/loops_with_friends.ex</span>&#x000A;<span class="k">defmodule</span> <span class="no">LoopsWithFriends</span> <span class="k">do</span>&#x000A;  <span class="kn">use</span> <span class="no">Application</span>&#x000A;&#x000A;  <span class="c1"># ...</span>&#x000A;&#x000A;  <span class="k">def</span> <span class="n">start</span><span class="p">(</span><span class="n">_type</span><span class="p">,</span> <span class="n">_args</span><span class="p">)</span> <span class="k">do</span>&#x000A;    <span class="kn">import</span> <span class="no">Supervisor</span><span class="o">.</span><span class="no">Spec</span><span class="p">,</span> <span class="ss">warn:</span> <span class="no">false</span>&#x000A;&#x000A;    <span class="n">children</span> <span class="o">=</span> <span class="p">[</span>&#x000A;      <span class="c1"># ...</span>&#x000A;      <span class="n">worker</span><span class="p">(</span><span class="no">LoopsWithFriends</span><span class="o">.</span><span class="no">JamBalancer</span><span class="p">,</span> <span class="p">[]),</span>&#x000A;    <span class="p">]</span>&#x000A;&#x000A;    <span class="n">opts</span> <span class="o">=</span> <span class="p">[</span>&#x000A;      <span class="ss">strategy:</span> <span class="ss">:one_for_one</span><span class="p">,</span>&#x000A;      <span class="ss">name:</span> <span class="no">LoopsWithFriends</span><span class="o">.</span><span class="no">Supervisor</span>&#x000A;    <span class="p">]</span>&#x000A;    <span class="no">Supervisor</span><span class="o">.</span><span class="n">start_link</span><span class="p">(</span><span class="n">children</span><span class="p">,</span> <span class="n">opts</span><span class="p">)</span>&#x000A;  <span class="k">end</span>&#x000A;&#x000A;  <span class="c1"># ...</span>&#x000A;<span class="k">end</span>&#x000A;</code></pre>
+<p>As the supervisor starts each of its children on application load, it will look for a <code>start_link</code> function in our balancer. Here we provide a wrapper around <code>Agent.start_link</code>, passing in a new <code>JamCollection</code> for the initial state.</p>
+
+<pre class="highlight elixir"><code><span class="c1"># lib/loops_with_friends/jam_balancer.ex</span>&#x000A;<span class="k">defmodule</span> <span class="no">LoopsWithFriends</span><span class="o">.</span><span class="no">JamBalancer</span> <span class="k">do</span>&#x000A;  <span class="n">alias</span> <span class="no">LoopsWithFriends</span><span class="o">.</span><span class="no">JamCollection</span>&#x000A;&#x000A;  <span class="nv">@name</span> <span class="bp">__MODULE__</span>&#x000A;&#x000A;  <span class="k">def</span> <span class="n">start_link</span><span class="p">(</span><span class="n">_opts</span><span class="p">)</span> <span class="k">do</span>&#x000A;    <span class="no">Agent</span><span class="o">.</span><span class="n">start_link</span><span class="p">(</span><span class="k">fn</span> <span class="o">-&gt;</span> <span class="no">JamCollection</span><span class="o">.</span><span class="n">new</span><span class="p">()</span> <span class="k">end</span><span class="p">,</span> <span class="ss">name:</span> <span class="nv">@name</span><span class="p">)</span>&#x000A;  <span class="k">end</span>&#x000A;<span class="k">end</span>&#x000A;</code></pre>
+<p>With our balancer started up, we can begin using it. When a user initially hits the app over HTTP, we need to let their client know which channel topic to join over the web socket. To provide this, we'll ask our jam balancer, "which jam is currently accepting users?"</p>
+
+<pre class="highlight html"><code><span class="c">&lt;!-- web/templates/page/index.html.eex --&gt;</span>&#x000A;<span class="nt">&lt;script&gt;</span>&#x000A;  <span class="nb">document</span><span class="p">.</span><span class="nx">addEventListener</span><span class="p">(</span><span class="s2">"DOMContentLoaded"</span><span class="p">,</span> <span class="kd">function</span> <span class="p">(</span><span class="nx">event</span><span class="p">)</span> <span class="p">{</span>&#x000A;    <span class="kd">var</span> <span class="nx">elmApp</span> <span class="o">=</span> <span class="nx">Elm</span><span class="p">.</span><span class="nx">App</span><span class="p">.</span><span class="nx">fullscreen</span><span class="p">({</span>&#x000A;      <span class="na">host</span><span class="p">:</span> <span class="nb">document</span><span class="p">.</span><span class="nx">location</span><span class="p">.</span><span class="nx">host</span><span class="p">,</span>&#x000A;      <span class="na">topic</span><span class="p">:</span> <span class="s2">"jams:&lt;%= JamBalancer.current_jam %&gt;"</span>&#x000A;    <span class="p">});</span>&#x000A;  <span class="p">});</span>&#x000A;<span class="nt">&lt;/script&gt;</span>&#x000A;</code></pre>
+<p>In the <code>current_jam</code> function, our <code>JamBalancer</code> module [<a href="https://github.com/jeffcole/loops_with_friends/blob/back-end-blog-posts/lib/loops_with_friends/jam_balancer/server.ex">source</a> | <a href="https://github.com/jeffcole/loops_with_friends/blob/back-end-blog-posts/test/lib/loops_with_friends/jam_balancer/server_test.exs">test</a>] pulls the jam collection out of its agent and passes it to the <code>JamCollection</code> module, invoking the function <code>most_populated_jam_with_capacity_or_new</code>. Note again that all the balancer is doing is holding the state, and passing it along to another module to determine characteristics about that state.</p>
+
+<pre class="highlight elixir"><code><span class="c1"># lib/loops_with_friends/jam_balancer.ex</span>&#x000A;<span class="k">defmodule</span> <span class="no">LoopsWithFriends</span><span class="o">.</span><span class="no">JamBalancer</span> <span class="k">do</span>&#x000A;  <span class="c1"># ...</span>&#x000A;&#x000A;  <span class="k">def</span> <span class="n">current_jam</span> <span class="k">do</span>&#x000A;    <span class="no">JamCollection</span><span class="o">.</span><span class="n">most_populated_jam_with_capacity_or_new</span><span class="p">(</span><span class="n">jams</span><span class="p">)</span>&#x000A;  <span class="k">end</span>&#x000A;&#x000A;  <span class="k">defp</span> <span class="n">jams</span> <span class="k">do</span>&#x000A;    <span class="no">Agent</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="nv">@name</span><span class="p">,</span> <span class="o">&amp;</span><span class="p">(</span><span class="nv">&amp;1</span><span class="p">))</span>&#x000A;  <span class="k">end</span>&#x000A;<span class="k">end</span>&#x000A;</code></pre>
+<p>The <code>JamCollection</code> module is where the real work goes on. It's also where we see that collections are represented internally as maps.</p>
+
+<p>In the first clause of the <code>most_populated_jam_with_capacity_or_new</code> function, we check to see if we have an empty collection, and if so, return a fresh jam ID back to the balancer so that a new jam can be started.</p>
+
+<p>In the second clause, we go looking for the jam that has the most users, where that jam is not full. If no such jam exists because all jams are full, <code>jam_with_most_users_under_max</code> returns <code>nil</code>. In that case, our calling function detects the falsy value and returns a new jam ID.</p>
+
+<pre class="highlight elixir"><code><span class="c1"># lib/loops_with_friends/jam_collection.ex</span>&#x000A;<span class="k">defmodule</span> <span class="no">LoopsWithFriends</span><span class="o">.</span><span class="no">JamCollection</span> <span class="k">do</span>&#x000A;  <span class="nv">@max_users</span> <span class="m">7</span>&#x000A;&#x000A;  <span class="k">def</span> <span class="n">new</span><span class="p">,</span> <span class="k">do</span><span class="p">:</span> <span class="p">%{}</span>&#x000A;&#x000A;  <span class="k">def</span> <span class="n">most_populated_jam_with_capacity_or_new</span><span class="p">(</span><span class="n">jams</span><span class="p">)</span>&#x000A;    <span class="ow">when</span> <span class="n">jams</span> <span class="o">==</span> <span class="p">%{},</span> <span class="k">do</span><span class="p">:</span> <span class="n">uuid</span><span class="p">()</span>&#x000A;&#x000A;  <span class="k">def</span> <span class="n">most_populated_jam_with_capacity_or_new</span><span class="p">(</span><span class="n">jams</span><span class="p">)</span> <span class="k">do</span>&#x000A;    <span class="n">jam_with_most_users_under_max</span><span class="p">(</span><span class="n">jams</span><span class="p">)</span> <span class="o">||</span> <span class="n">uuid</span><span class="p">()</span>&#x000A;  <span class="k">end</span>&#x000A;&#x000A;  <span class="c1"># ...</span>&#x000A;<span class="k">end</span>&#x000A;</code></pre>
+<p>I'll omit the implementation of <code>jam_with_most_users_under_max</code> here for brevity, but check out the full <code>JamCollection</code> module [<a href="https://github.com/jeffcole/loops_with_friends/blob/back-end-blog-posts/lib/loops_with_friends/jam_collection/collection.ex">source</a> | <a href="https://github.com/jeffcole/loops_with_friends/blob/back-end-blog-posts/test/lib/loops_with_friends/jam_collection/collection_test.exs">test</a>] if you'd like to see it.</p>
+
+<h2 id="populating-the-collection">Populating the Collection</h2>
+
+<p>At this point we've got a clear API written for asking our balancer and collection what jam we should return to the user. What we're missing is the management of the contents of that collection as users join and leave.</p>
+
+<p>In our channel, let's hook into our existing <code>join</code> callback, and add a <code>terminate</code> callback. Calls to new balancer functions <code>refresh</code> and <code>remove_user</code> will supply the functionality we need.</p>
+
+<pre class="highlight elixir"><code><span class="c1"># web/channels/jam_channel.ex</span>&#x000A;<span class="k">defmodule</span> <span class="no">LoopsWithFriends</span><span class="o">.</span><span class="no">JamChannel</span> <span class="k">do</span>&#x000A;  <span class="c1"># ...</span>&#x000A;&#x000A;  <span class="k">def</span> <span class="n">join</span><span class="p">(</span><span class="sd">"</span><span class="s2">jams:"</span> <span class="o">&lt;&gt;</span> <span class="n">jam_id</span><span class="p">,</span> <span class="n">_params</span><span class="p">,</span> <span class="n">socket</span><span class="p">)</span> <span class="k">do</span>&#x000A;    <span class="no">Presence</span><span class="o">.</span><span class="n">track</span> <span class="c1"># ...</span>&#x000A;&#x000A;    <span class="no">JamBalancer</span><span class="o">.</span><span class="n">refresh</span><span class="p">(</span><span class="n">jam_id</span><span class="p">,</span> <span class="no">Presence</span><span class="o">.</span><span class="n">list</span><span class="p">(</span><span class="n">socket</span><span class="p">))</span>&#x000A;&#x000A;    <span class="c1"># ...</span>&#x000A;  <span class="k">end</span>&#x000A;&#x000A;  <span class="k">def</span> <span class="n">terminate</span><span class="p">(</span><span class="n">msg</span><span class="p">,</span> <span class="n">socket</span><span class="p">)</span> <span class="k">do</span>&#x000A;    <span class="no">JamBalancer</span><span class="o">.</span><span class="n">remove_user</span><span class="p">(</span>&#x000A;      <span class="n">socket</span><span class="o">.</span><span class="n">assigns</span><span class="o">.</span><span class="n">jam_id</span><span class="p">,</span>&#x000A;      <span class="n">socket</span><span class="o">.</span><span class="n">assigns</span><span class="o">.</span><span class="n">user_id</span>&#x000A;    <span class="p">)</span>&#x000A;&#x000A;    <span class="n">msg</span>&#x000A;  <span class="k">end</span>&#x000A;&#x000A;  <span class="c1"># ...</span>&#x000A;<span class="k">end</span>&#x000A;</code></pre>
+<p>Similarly to <code>current_jam</code>, our balancer will retrieve our jam collection state and forward the arguments for each of these functions to the collection module. The return values are new collections that get stored as the balancer's state.</p>
+
+<pre class="highlight elixir"><code><span class="c1"># lib/loops_with_friends/jam_balancer.ex</span>&#x000A;<span class="k">defmodule</span> <span class="no">LoopsWithFriends</span><span class="o">.</span><span class="no">JamBalancer</span> <span class="k">do</span>&#x000A;  <span class="c1"># ...</span>&#x000A;&#x000A;  <span class="k">def</span> <span class="n">refresh</span><span class="p">(</span><span class="n">jam_id</span><span class="p">,</span> <span class="n">presence_map</span><span class="p">)</span> <span class="k">do</span>&#x000A;    <span class="no">Agent</span><span class="o">.</span><span class="n">update</span> <span class="nv">@name</span><span class="p">,</span> <span class="k">fn</span> <span class="n">jams</span> <span class="o">-&gt;</span>&#x000A;      <span class="no">JamCollection</span><span class="o">.</span><span class="n">refresh</span><span class="p">(</span><span class="n">jams</span><span class="p">,</span> <span class="n">jam_id</span><span class="p">,</span> <span class="no">Map</span><span class="o">.</span><span class="n">keys</span><span class="p">(</span><span class="n">presence_map</span><span class="p">))</span>&#x000A;    <span class="k">end</span>&#x000A;  <span class="k">end</span>&#x000A;&#x000A;  <span class="k">def</span> <span class="n">remove_user</span><span class="p">(</span><span class="n">jam_id</span><span class="p">,</span> <span class="n">user_id</span><span class="p">)</span> <span class="k">do</span>&#x000A;    <span class="no">Agent</span><span class="o">.</span><span class="n">update</span> <span class="nv">@name</span><span class="p">,</span> <span class="k">fn</span> <span class="n">jams</span> <span class="o">-&gt;</span>&#x000A;      <span class="no">JamCollection</span><span class="o">.</span><span class="n">remove_user</span><span class="p">(</span><span class="n">jams</span><span class="p">,</span> <span class="n">jam_id</span><span class="p">,</span> <span class="n">user_id</span><span class="p">)</span>&#x000A;    <span class="k">end</span>&#x000A;  <span class="k">end</span>&#x000A;&#x000A;  <span class="c1"># ...</span>&#x000A;<span class="k">end</span>&#x000A;</code></pre>
+<p>See the full <code>JamCollection</code> module [<a href="https://github.com/jeffcole/loops_with_friends/blob/back-end-blog-posts/lib/loops_with_friends/jam_collection/collection.ex">source</a> | <a href="https://github.com/jeffcole/loops_with_friends/blob/back-end-blog-posts/test/lib/loops_with_friends/jam_collection/collection_test.exs">test</a>] for the implementations of these functions.</p>
+
+<p>In the <a href="../phoenix-channel-race-conditions/">next post</a>, we'll see that we need to consider timing issues with channel joining in order to ensure the best experience for our users.</p>
+
+
+<div class='share'><a href="http://twitter.com/home?status=Read+%27Talk+to+My+%28Elixir%29+Agent%27+%40obscurehobo+https%3A%2F%2Fjeffcole.github.io%2Ftalk-to-my-elixir-agent%2F" target="_blank"><img src="../assets/images/icons/twitter.svg" alt="Twitter" /><span>Tweet This</span></a></div>
+</article>
+
+</main>
+<footer>
+<a class='home' href='/' title='Home'>Home</a>
+<p class='contact'>
+<a href="https://github.com/jeffcole"><i class='fa fa-fw fa-2x fa-github' title='GitHub'></i>
+</a><a href="https://www.linkedin.com/in/jeffreydcole"><i class='fa fa-fw fa-2x fa-linkedin' title='LinkedIn'></i>
+</a><a href="https://twitter.com/obscurehobo"><i class='fa fa-fw fa-2x fa-twitter' title='Twitter'></i>
+</a><a href="mailto:jeffreydonaldcole@gmail.com"><i class='fa fa-fw fa-2x fa-envelope' title='Email'></i>
+</a></p>
+
+<p>© 2016–present Jeff Cole</p>
+</footer>
+<script src="../assets/javascripts/application.js"></script>
+</body>
+</html>

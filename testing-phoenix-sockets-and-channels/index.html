@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset='utf-8'>
+<meta content='IE=edge,chrome=1' http-equiv='X-UA-Compatible'>
+<meta content='width=device-width, initial-scale=1' name='viewport'>
+<meta content='I write about building things.' name='description'>
+<meta content='jeff cole' name='keywords'>
+<meta content='Jeff Cole - Testing Phoenix Sockets and Channels' property='og:title'>
+<meta content='article' property='og:type'>
+<meta content='http://gravatar.com/avatar/b510f21d7375664c0425d07417016afd.jpg' property='og:image'>
+<meta content='https://jeffcole.github.io/testing-phoenix-sockets-and-channels/' property='og:url'>
+<title>Jeff Cole - Testing Phoenix Sockets and Channels</title>
+<link href='https://jeffcole.github.io/testing-phoenix-sockets-and-channels/' rel='canonical'>
+<link href='//fonts.googleapis.com/css?family=Lusitana:400,700' rel='stylesheet' type='text/css'>
+<link href='//fonts.googleapis.com/css?family=Merriweather:400,300,300italic,400italic,700,700italic,900,900italic' rel='stylesheet' type='text/css'>
+<link href='//fonts.googleapis.com/css?family=Merriweather+Sans:400,300,300italic,400italic,700italic,700,800,800italic' rel='stylesheet' type='text/css'>
+<link href="../assets/stylesheets/application.css" rel="stylesheet" />
+</head>
+<body class='testing-phoenix-sockets-and-channels testing-phoenix-sockets-and-channels_index type-system-serif'>
+<header>
+<h1>
+Jeff Cole
+<a href='/' title='Home'>
+<i class='fa fa-fw fa-home'></i>
+</a>
+</h1>
+</header>
+<main>
+<section class='intro'>
+<h3 class='tagline'>
+<span>I build things with computers,</span>
+<span>for people.</span>
+</h3>
+<p class='contact'>
+<a href="https://github.com/jeffcole"><i class='fa fa-fw fa-2x fa-github' title='GitHub'></i>
+</a><a href="https://www.linkedin.com/in/jeffreydcole"><i class='fa fa-fw fa-2x fa-linkedin' title='LinkedIn'></i>
+</a><a href="https://twitter.com/obscurehobo"><i class='fa fa-fw fa-2x fa-twitter' title='Twitter'></i>
+</a><a href="mailto:jeffreydonaldcole@gmail.com"><i class='fa fa-fw fa-2x fa-envelope' title='Email'></i>
+</a></p>
+
+</section>
+<article>
+<h1>Testing Phoenix Sockets and Channels</h1>
+<p class='date'>
+October 12, 2016
+</p>
+
+<blockquote>
+  <p>This post is one in a series about building a collaborative music app in Elixir and Elm called <a href="http://loops-with-friends.herokuapp.com/">Loops With Friends</a>. If you'd like to catch up, visit the <a href="../collaborative-music-loops-in-elixir-and-elm/">first post</a> in the series to learn all about it!</p>
+</blockquote>
+
+<p>In the first post of this series we introduced the <a href="http://loops-with-friends.herokuapp.com/">Loops With Friends</a> app, and implemented <a href="../collaborative-music-loops-in-elixir-and-elm/">channel joining</a> with Phoenix. Next we looked at <a href="../jamming-with-phoenix-presence/">presence tracking, loop cycling, and event broadcasting</a>. Then we added <a href="../talk-to-my-elixir-agent/">jam balancing</a> by leveraging an Elixir agent, and fixed a <a href="../phoenix-channel-race-conditions/">race condition</a> in our channel joining process.</p>
+
+<p>The next few posts will look at how the functional nature of Elixir makes applications written in it a joy to test. Elixir ships with the unit testing framework <a href="http://elixir-lang.org/docs/stable/ex_unit/ExUnit.html">ExUnit</a>, which provides great testing support out of the box. We'll start with a brief look at testing Phoenix's abstractions around sockets and channels, and then move on to some techniques for building and maintaining a healthy test suite in Elixir.</p>
+
+<h2 id="making-use-of-channeltest">Making use of <code>ChannelTest</code></h2>
+
+<p>Along with the code to support channel implementation, Phoenix also ships with code to make testing sockets and channels straightforward. This code lives in the <code>Phoenix.ChannelTest</code> module. The way that we take advantage of it is to <code>use</code> it in a module of our own, and then use <em>that</em> module in our actual test module. Note that this process is analogous to <a href="../jamming-with-phoenix-presence/">how we implemented presence</a>.</p>
+
+<p>Specifically, we <code>use Phoenix.ChannelTest</code> in our <code>LoopsWithFriends</code> submodule <code>ChannelCase</code>, and then <code>use LoopsWithFriends.ChannelCase</code> in both of our <code>UserSocketTest</code> and <code>JamChannelTest</code> modules. Once we've done so, we have access to all of the functions and macros that <a href="https://hexdocs.pm/phoenix/Phoenix.ChannelTest.html"><code>Phoenix.ChannelTest</code></a> provides. For instance, in <a href="https://github.com/jeffcole/loops_with_friends/blob/back-end-blog-posts/test/channels/user_socket_test.exs"><code>UserSocketTest</code></a>, we use the <code>connect</code> macro to initialize a socket that we can then assert against.</p>
+
+<pre class="highlight elixir"><code><span class="c1"># test/channels/user_socket_test.exs</span>&#x000A;<span class="k">defmodule</span> <span class="no">LoopsWithFriends</span><span class="o">.</span><span class="no">UserSocketTest</span> <span class="k">do</span>&#x000A;  <span class="kn">use</span> <span class="no">LoopsWithFriends</span><span class="o">.</span><span class="no">ChannelCase</span><span class="p">,</span> <span class="ss">async:</span> <span class="no">true</span>&#x000A;&#x000A;  <span class="n">alias</span> <span class="no">LoopsWithFriends</span><span class="o">.</span><span class="no">UserSocket</span>&#x000A;&#x000A;  <span class="n">test</span> <span class="sd">"</span><span class="s2">`connect` assigns a UUID"</span> <span class="k">do</span>&#x000A;    <span class="n">assert</span> <span class="p">{</span><span class="ss">:ok</span><span class="p">,</span> <span class="n">socket</span><span class="p">}</span> <span class="o">=</span> <span class="n">connect</span><span class="p">(</span><span class="no">UserSocket</span><span class="p">,</span> <span class="p">%{})</span>&#x000A;&#x000A;    <span class="c1"># Ensure a valid UUID</span>&#x000A;    <span class="n">assert</span> <span class="no">UUID</span><span class="o">.</span><span class="n">info!</span><span class="p">(</span><span class="n">socket</span><span class="o">.</span><span class="n">assigns</span><span class="o">.</span><span class="n">user_id</span><span class="p">)</span>&#x000A;  <span class="k">end</span>&#x000A;<span class="k">end</span>&#x000A;</code></pre>
+<blockquote>
+  <p>The <code>async: true</code> on the <code>use</code> line lets ExUnit know that the tests in this module are safe to run asynchronously, which is a huge workflow boon for anyone familiar with slow test suites.</p>
+</blockquote>
+
+<p>The tests in <a href="https://github.com/jeffcole/loops_with_friends/blob/back-end-blog-posts/test/channels/jam_channel_test.exs"><code>JamChannelTest</code></a> similarly take advantage of Phoenix test functions and macros such as <code>subscribe_and_join</code>, <code>push</code>, <code>assert_push</code>, <code>refute_push</code>, and <code>assert_broadcast</code>.</p>
+
+<pre class="highlight elixir"><code><span class="c1"># test/channels/jam_channel_test.exs</span>&#x000A;<span class="k">defmodule</span> <span class="no">LoopsWithFriends</span><span class="o">.</span><span class="no">JamChannelTest</span> <span class="k">do</span>&#x000A;  <span class="kn">use</span> <span class="no">LoopsWithFriends</span><span class="o">.</span><span class="no">ChannelCase</span><span class="p">,</span> <span class="ss">async:</span> <span class="no">true</span>&#x000A;&#x000A;  <span class="n">setup</span> <span class="k">do</span>&#x000A;    <span class="p">{</span><span class="ss">:ok</span><span class="p">,</span> <span class="n">socket</span><span class="p">}</span> <span class="o">=</span> <span class="n">connect</span><span class="p">(</span><span class="no">LoopsWithFriends</span><span class="o">.</span><span class="no">UserSocket</span><span class="p">,</span> <span class="p">%{})</span>&#x000A;&#x000A;    <span class="p">{</span><span class="ss">:ok</span><span class="p">,</span> <span class="ss">socket:</span> <span class="n">socket</span><span class="p">}</span>&#x000A;  <span class="k">end</span>&#x000A;&#x000A;  <span class="n">describe</span> <span class="sd">"</span><span class="s2">`join`"</span> <span class="k">do</span>&#x000A;    <span class="n">test</span> <span class="sd">"</span><span class="s2">replies with a `user_id`"</span><span class="p">,</span> <span class="p">%{</span><span class="ss">socket:</span> <span class="n">socket</span><span class="p">}</span> <span class="k">do</span>&#x000A;      <span class="p">{</span><span class="ss">:ok</span><span class="p">,</span> <span class="n">reply</span><span class="p">,</span> <span class="n">_socket</span><span class="p">}</span> <span class="o">=</span>&#x000A;        <span class="n">subscribe_and_join</span><span class="p">(</span><span class="n">socket</span><span class="p">,</span> <span class="sd">"</span><span class="s2">jams:jam-1"</span><span class="p">,</span> <span class="p">%{})</span>&#x000A;&#x000A;      <span class="n">assert</span> <span class="p">%{</span><span class="ss">user_id:</span> <span class="n">user_id</span><span class="p">}</span> <span class="o">=</span> <span class="n">reply</span>&#x000A;      <span class="n">assert</span> <span class="n">user_id</span>&#x000A;    <span class="k">end</span>&#x000A;&#x000A;    <span class="n">test</span> <span class="sd">"</span><span class="s2">assigns the `jam_id`"</span><span class="p">,</span> <span class="p">%{</span><span class="ss">socket:</span> <span class="n">socket</span><span class="p">}</span> <span class="k">do</span>&#x000A;      <span class="n">socket</span> <span class="o">=</span> <span class="n">subscribe_and_join!</span><span class="p">(</span><span class="n">socket</span><span class="p">,</span> <span class="sd">"</span><span class="s2">jams:jam-1"</span><span class="p">,</span> <span class="p">%{})</span>&#x000A;&#x000A;      <span class="n">assert</span> <span class="n">socket</span><span class="o">.</span><span class="n">assigns</span><span class="o">.</span><span class="n">jam_id</span> <span class="o">==</span> <span class="sd">"</span><span class="s2">jam-1"</span>&#x000A;    <span class="k">end</span>&#x000A;&#x000A;    <span class="n">test</span> <span class="sd">"</span><span class="s2">pushes presence state"</span><span class="p">,</span> <span class="p">%{</span><span class="ss">socket:</span> <span class="n">socket</span><span class="p">}</span> <span class="k">do</span>&#x000A;      <span class="p">{</span><span class="ss">:ok</span><span class="p">,</span> <span class="n">_reply</span><span class="p">,</span> <span class="n">_socket</span><span class="p">}</span> <span class="o">=</span>&#x000A;        <span class="n">subscribe_and_join</span><span class="p">(</span><span class="n">socket</span><span class="p">,</span> <span class="sd">"</span><span class="s2">jams:jam-1"</span><span class="p">,</span> <span class="p">%{})</span>&#x000A;&#x000A;      <span class="n">assert_push</span> <span class="sd">"</span><span class="s2">presence_state"</span><span class="p">,</span> <span class="p">%{}</span>&#x000A;    <span class="k">end</span>&#x000A;  <span class="k">end</span>&#x000A;&#x000A;  <span class="c1"># ...</span>&#x000A;<span class="k">end</span>&#x000A;</code></pre>
+<p>These conveniences make it easy to hook into the lifecycle of our channel and verify its behavior. Check out the <a href="https://github.com/jeffcole/loops_with_friends/blob/back-end-blog-posts/test/channels/jam_channel_test.exs"><code>JamChannelTest source</code></a> to see the module tested in its entirety, including test cases covering a full jam and event broadcasting.</p>
+
+<p>In the <a href="../injecting-agent-names-in-elixir-tests/">next post</a> we'll move on to testing the components of our application that make it unique.</p>
+
+
+<div class='share'><a href="http://twitter.com/home?status=Read+%27Testing+Phoenix+Sockets+and+Channels%27+%40obscurehobo+https%3A%2F%2Fjeffcole.github.io%2Ftesting-phoenix-sockets-and-channels%2F" target="_blank"><img src="../assets/images/icons/twitter.svg" alt="Twitter" /><span>Tweet This</span></a></div>
+</article>
+
+</main>
+<footer>
+<a class='home' href='/' title='Home'>Home</a>
+<p class='contact'>
+<a href="https://github.com/jeffcole"><i class='fa fa-fw fa-2x fa-github' title='GitHub'></i>
+</a><a href="https://www.linkedin.com/in/jeffreydcole"><i class='fa fa-fw fa-2x fa-linkedin' title='LinkedIn'></i>
+</a><a href="https://twitter.com/obscurehobo"><i class='fa fa-fw fa-2x fa-twitter' title='Twitter'></i>
+</a><a href="mailto:jeffreydonaldcole@gmail.com"><i class='fa fa-fw fa-2x fa-envelope' title='Email'></i>
+</a></p>
+
+<p>© 2016–present Jeff Cole</p>
+</footer>
+<script src="../assets/javascripts/application.js"></script>
+</body>
+</html>

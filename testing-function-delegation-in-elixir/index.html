@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset='utf-8'>
+<meta content='IE=edge,chrome=1' http-equiv='X-UA-Compatible'>
+<meta content='width=device-width, initial-scale=1' name='viewport'>
+<meta content='I write about building things.' name='description'>
+<meta content='jeff cole' name='keywords'>
+<meta content='Jeff Cole - Testing Function Delegation in Elixir' property='og:title'>
+<meta content='article' property='og:type'>
+<meta content='http://gravatar.com/avatar/b510f21d7375664c0425d07417016afd.jpg' property='og:image'>
+<meta content='https://jeffcole.github.io/testing-function-delegation-in-elixir/' property='og:url'>
+<title>Jeff Cole - Testing Function Delegation in Elixir</title>
+<link href='https://jeffcole.github.io/testing-function-delegation-in-elixir/' rel='canonical'>
+<link href='//fonts.googleapis.com/css?family=Lusitana:400,700' rel='stylesheet' type='text/css'>
+<link href='//fonts.googleapis.com/css?family=Merriweather:400,300,300italic,400italic,700,700italic,900,900italic' rel='stylesheet' type='text/css'>
+<link href='//fonts.googleapis.com/css?family=Merriweather+Sans:400,300,300italic,400italic,700italic,700,800,800italic' rel='stylesheet' type='text/css'>
+<link href="../assets/stylesheets/application.css" rel="stylesheet" />
+</head>
+<body class='testing-function-delegation-in-elixir testing-function-delegation-in-elixir_index type-system-serif'>
+<header>
+<h1>
+Jeff Cole
+<a href='/' title='Home'>
+<i class='fa fa-fw fa-home'></i>
+</a>
+</h1>
+</header>
+<main>
+<section class='intro'>
+<h3 class='tagline'>
+<span>I build things with computers,</span>
+<span>for people.</span>
+</h3>
+<p class='contact'>
+<a href="https://github.com/jeffcole"><i class='fa fa-fw fa-2x fa-github' title='GitHub'></i>
+</a><a href="https://www.linkedin.com/in/jeffreydcole"><i class='fa fa-fw fa-2x fa-linkedin' title='LinkedIn'></i>
+</a><a href="https://twitter.com/obscurehobo"><i class='fa fa-fw fa-2x fa-twitter' title='Twitter'></i>
+</a><a href="mailto:jeffreydonaldcole@gmail.com"><i class='fa fa-fw fa-2x fa-envelope' title='Email'></i>
+</a></p>
+
+</section>
+<article>
+<h1>Testing Function Delegation in Elixir</h1>
+<p class='date'>
+October 15, 2016
+</p>
+
+<blockquote>
+  <p>This post is one in a series about building a collaborative music app in Elixir and Elm called <a href="http://loops-with-friends.herokuapp.com/">Loops With Friends</a>. If you'd like to catch up, visit the <a href="../collaborative-music-loops-in-elixir-and-elm/">first post</a> in the series to learn all about it!</p>
+</blockquote>
+
+<p>With our tests <a href="../using-stubs-to-isolate-elixir-tests/">isolated from the dependencies of the modules they test</a>, we're ready for the final Elixir testing technique I have to share for now. Recall that our jam balancer is a wrapper around the state of a jam collection. Most of the balancer's API consists of delegating function calls to the collection, which then returns values according to its own behavior. This poses an interesting problem for our tests. We want to test the balancer to ensure that it is behaving as expected, but we don't want to couple our tests to the behavior of the collection.</p>
+
+<p>If you are familiar with testing object-oriented applications, in this situation you might reach for mocks in the way that Martin Fowler describes them. You might want to use a library to metaprogram an expectation that a particular function is called with certain arguments. However as José notes in his post above, in Elixir that would be a heavy-handed approach that would would hide close coupling.</p>
+
+<p>Brian Cardarella <a href="https://dockyard.com/blog/2016/03/24/testing-function-delegation-in-elixir-without-stubbing">proposes a solution</a> on the DockYard blog, where he notes that in Elixir, we can verify our function delegation easily by sending messages between processes.</p>
+
+<blockquote>
+  <h4 id="you-put-a-mock-in-my-stub-continued">You put a mock in my stub! (<a href="../using-stubs-to-isolate-elixir-tests/#you-put-a-mock-in-my-stub">continued</a>)</h4>
+  <p>Although the title of Brian's post is "Testing function delegation in Elixir without stubbing," I would argue that here again there might be a confusion of terms. I believe that Brian is doing essentially the opposite of what José did above, by using the term "stubbing" where it might be better to use "mocking." I would indeed call the modules that he constructs in his tests "stubs."</p>
+
+  <p>Also at play here is the distinction that José makes in his post between using these terms as nouns versus using them as verbs, where his preference lies strongly with the former. Brian's test modules are being used as nouns rather than verbs, so I believe that José would approve.</p>
+
+  <p>These are my interpretations of José's and Brian's usage as seen through the lens of Martin Fowler's <a href="http://martinfowler.com/articles/mocksArentStubs.html">definitions</a>, which are the most clear that I have found. When José and Brian take issue with stubbing and mocking, I believe that they are taking issue with the practice of using a library to obfuscate what in Elixir are simple tasks: <a href="https://en.wikipedia.org/wiki/Dependency_injection">dependency injection</a> and <a href="http://elixir-lang.org/getting-started/processes.html">message passing</a>, respectively.</p>
+</blockquote>
+
+<p>In our case, this approach is facilitated by the fact that we've already created a <code>Stub</code> for our <a href="https://github.com/jeffcole/loops_with_friends/blob/back-end-blog-posts/lib/loops_with_friends/jam_collection.ex"><code>JamCollection</code></a> in the <a href="../using-stubs-to-isolate-elixir-tests/">previous post</a>. In <a href="https://github.com/jeffcole/loops_with_friends/blob/back-end-blog-posts/test/lib/loops_with_friends/jam_balancer/server_test.exs">our balancer's test</a>, we call a function on the balancer module, and then indicate our desire that it call through to the collection with the ExUnit macro <code>assert_receive</code>.</p>
+
+<pre class="highlight elixir"><code><span class="k">defmodule</span> <span class="no">LoopsWithFriends</span><span class="o">.</span><span class="no">JamBalancer</span><span class="o">.</span><span class="no">ServerTest</span> <span class="k">do</span>&#x000A;  <span class="c1"># ...</span>&#x000A;&#x000A;  <span class="n">alias</span> <span class="no">LoopsWithFriends</span><span class="o">.</span><span class="no">JamBalancer</span><span class="o">.</span><span class="no">Server</span>&#x000A;&#x000A;  <span class="nv">@name</span> <span class="bp">__MODULE__</span>&#x000A;&#x000A;  <span class="c1"># ...</span>&#x000A;&#x000A;  <span class="n">describe</span> <span class="sd">"</span><span class="s2">`jam_capacity?`"</span> <span class="k">do</span>&#x000A;    <span class="n">setup</span> <span class="ss">:start_server</span>&#x000A;&#x000A;    <span class="n">test</span> <span class="sd">"</span><span class="s2">asks the collection"</span> <span class="k">do</span>&#x000A;      <span class="no">Server</span><span class="o">.</span><span class="n">jam_capacity?</span><span class="p">(</span><span class="nv">@name</span><span class="p">,</span> <span class="sd">"</span><span class="s2">jam-1"</span><span class="p">)</span>&#x000A;&#x000A;      <span class="n">assert_receive</span> <span class="ss">:called_jam_collection_jam_capacity?</span>&#x000A;    <span class="k">end</span>&#x000A;  <span class="k">end</span>&#x000A;&#x000A;  <span class="c1"># ...</span>&#x000A;</code></pre>
+<p>The <a href="https://github.com/jeffcole/loops_with_friends/blob/back-end-blog-posts/lib/loops_with_friends/jam_collection/stub.ex"><code>JamCollection.Stub</code></a> module, which is used by the <a href="https://github.com/jeffcole/loops_with_friends/blob/back-end-blog-posts/lib/loops_with_friends/jam_balancer/server.ex"><code>JamBalancer.Server</code></a> in the test environment, provides a handy place to send a message back to the test process.</p>
+
+<pre class="highlight elixir"><code><span class="k">defmodule</span> <span class="no">LoopsWithFriends</span><span class="o">.</span><span class="no">JamCollection</span><span class="o">.</span><span class="no">Stub</span> <span class="k">do</span>&#x000A;  <span class="c1"># ...</span>&#x000A;&#x000A;  <span class="k">def</span> <span class="n">jam_capacity?</span><span class="p">(</span><span class="n">jams</span><span class="p">,</span> <span class="n">_jam_id</span><span class="p">)</span> <span class="k">do</span>&#x000A;    <span class="n">send</span> <span class="n">self</span><span class="p">(),</span> <span class="ss">:called_jam_collection_jam_capacity?</span>&#x000A;  <span class="k">end</span>&#x000A;&#x000A;  <span class="c1"># ...</span>&#x000A;<span class="k">end</span>&#x000A;</code></pre>
+<p>With that, we've succeeded in verifying that our balancer delegates functions to our collection, without duplicating the tests for the return values of those functions, and without using a mocking library to hide communication between modules.</p>
+
+<p>You might notice in the <a href="https://github.com/jeffcole/loops_with_friends/blob/back-end-blog-posts/test/lib/loops_with_friends/jam_balancer/server_test.exs"><code>ServerTest</code></a> that for some tests, I used Brian's tip of passing the caller of a function as an option to that function, in order to allow the agent's process to send a message back to the test process. Very useful!</p>
+
+<p>The techniques outlined in the last few posts have made building and testing the back end for Loops With Friends in Elixir a fun and rewarding experience. We've learned how to keep our tests on equal footing with our production code, how to isolate our tests from the dependencies of the function under test, and how to test function delegation in a simple way without increasing coupling.</p>
+
+
+<div class='share'><a href="http://twitter.com/home?status=Read+%27Testing+Function+Delegation+in+Elixir%27+%40obscurehobo+https%3A%2F%2Fjeffcole.github.io%2Ftesting-function-delegation-in-elixir%2F" target="_blank"><img src="../assets/images/icons/twitter.svg" alt="Twitter" /><span>Tweet This</span></a></div>
+</article>
+
+</main>
+<footer>
+<a class='home' href='/' title='Home'>Home</a>
+<p class='contact'>
+<a href="https://github.com/jeffcole"><i class='fa fa-fw fa-2x fa-github' title='GitHub'></i>
+</a><a href="https://www.linkedin.com/in/jeffreydcole"><i class='fa fa-fw fa-2x fa-linkedin' title='LinkedIn'></i>
+</a><a href="https://twitter.com/obscurehobo"><i class='fa fa-fw fa-2x fa-twitter' title='Twitter'></i>
+</a><a href="mailto:jeffreydonaldcole@gmail.com"><i class='fa fa-fw fa-2x fa-envelope' title='Email'></i>
+</a></p>
+
+<p>© 2016–present Jeff Cole</p>
+</footer>
+<script src="../assets/javascripts/application.js"></script>
+</body>
+</html>

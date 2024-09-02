@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset='utf-8'>
+<meta content='IE=edge,chrome=1' http-equiv='X-UA-Compatible'>
+<meta content='width=device-width, initial-scale=1' name='viewport'>
+<meta content='I write about building things.' name='description'>
+<meta content='jeff cole' name='keywords'>
+<meta content='Jeff Cole - Jamming with Phoenix Presence' property='og:title'>
+<meta content='article' property='og:type'>
+<meta content='http://gravatar.com/avatar/b510f21d7375664c0425d07417016afd.jpg' property='og:image'>
+<meta content='https://jeffcole.github.io/jamming-with-phoenix-presence/' property='og:url'>
+<title>Jeff Cole - Jamming with Phoenix Presence</title>
+<link href='https://jeffcole.github.io/jamming-with-phoenix-presence/' rel='canonical'>
+<link href='//fonts.googleapis.com/css?family=Lusitana:400,700' rel='stylesheet' type='text/css'>
+<link href='//fonts.googleapis.com/css?family=Merriweather:400,300,300italic,400italic,700,700italic,900,900italic' rel='stylesheet' type='text/css'>
+<link href='//fonts.googleapis.com/css?family=Merriweather+Sans:400,300,300italic,400italic,700italic,700,800,800italic' rel='stylesheet' type='text/css'>
+<link href="../assets/stylesheets/application.css" rel="stylesheet" />
+</head>
+<body class='jamming-with-phoenix-presence jamming-with-phoenix-presence_index type-system-serif'>
+<header>
+<h1>
+Jeff Cole
+<a href='/' title='Home'>
+<i class='fa fa-fw fa-home'></i>
+</a>
+</h1>
+</header>
+<main>
+<section class='intro'>
+<h3 class='tagline'>
+<span>I build things with computers,</span>
+<span>for people.</span>
+</h3>
+<p class='contact'>
+<a href="https://github.com/jeffcole"><i class='fa fa-fw fa-2x fa-github' title='GitHub'></i>
+</a><a href="https://www.linkedin.com/in/jeffreydcole"><i class='fa fa-fw fa-2x fa-linkedin' title='LinkedIn'></i>
+</a><a href="https://twitter.com/obscurehobo"><i class='fa fa-fw fa-2x fa-twitter' title='Twitter'></i>
+</a><a href="mailto:jeffreydonaldcole@gmail.com"><i class='fa fa-fw fa-2x fa-envelope' title='Email'></i>
+</a></p>
+
+</section>
+<article>
+<h1>Jamming with Phoenix Presence</h1>
+<p class='date'>
+October  6, 2016
+</p>
+
+<p>In the <a href="../collaborative-music-loops-in-elixir-and-elm/">first post</a> of this series, we introduced the <a href="http://loops-with-friends.herokuapp.com/">Loops With Friends</a> app, and how it uses Phoenix Channels to allow players to join a jam. In this post, we'll see how we can use Phoenix Presence to make a jam truly collaborative.</p>
+
+<h2 id="tracking-players">Tracking Players</h2>
+
+<p>Phoenix's <a href="https://dockyard.com/blog/2016/03/25/what-makes-phoenix-presence-special-sneak-peek">Presence</a> feature makes it straightforward to manage connected entities in our application. It even works across nodes if the application is distributed. Although Loops With Friends hasn't made it big enough to require distribution (yet), presence is still quite handy for allowing multiple clients of our app to interact.</p>
+
+<p>Adding presence support to our application is as simple as creating a boilerplate <code>Presence</code> module which in turn <code>use</code>s Phoenix's <code>Presence</code> module. We add our module to our app's supervision tree [<a href="https://github.com/jeffcole/loops_with_friends/blob/back-end-blog-posts/lib/loops_with_friends.ex#L20">source</a>], and then interact with this module.</p>
+
+<p>In our channel, when a user joins, we pass the socket, the user's id, and any metadata we wish to store to the <code>Presence.track</code> function.</p>
+
+<pre class="highlight elixir"><code><span class="c1"># web/channels/jam_channel.ex</span>&#x000A;<span class="k">defmodule</span> <span class="no">LoopsWithFriends</span><span class="o">.</span><span class="no">JamChannel</span> <span class="k">do</span>&#x000A;  <span class="c1"># ...</span>&#x000A;&#x000A;  <span class="n">alias</span> <span class="no">LoopsWithFriends</span><span class="o">.</span><span class="no">Presence</span>&#x000A;&#x000A;  <span class="k">def</span> <span class="n">join</span><span class="p">(</span><span class="sd">"</span><span class="s2">jams:"</span> <span class="o">&lt;&gt;</span> <span class="n">jam_id</span><span class="p">,</span> <span class="n">_params</span><span class="p">,</span> <span class="n">socket</span><span class="p">)</span> <span class="k">do</span>&#x000A;    <span class="no">Presence</span><span class="o">.</span><span class="n">track</span><span class="p">(</span><span class="n">socket</span><span class="p">,</span> <span class="n">socket</span><span class="o">.</span><span class="n">assigns</span><span class="o">.</span><span class="n">user_id</span><span class="p">,</span> <span class="p">%{</span>&#x000A;      <span class="ss">user_id:</span> <span class="n">socket</span><span class="o">.</span><span class="n">assigns</span><span class="o">.</span><span class="n">user_id</span>&#x000A;    <span class="p">})</span>&#x000A;&#x000A;    <span class="c1"># ...</span>&#x000A;  <span class="k">end</span>&#x000A;<span class="k">end</span>&#x000A;</code></pre>
+<p>That's all we need to do from the server side to track users. The Phoenix Presence client-side implementations communicate with the server over the socket to keep the server informed.</p>
+
+<h2 id="cycling-loops">Cycling Loops</h2>
+
+<p>We want to make sure that each user gets a different music loop when they join. To accomplish this, we need to pick a loop out of any that haven't already been taken by users in the jam. The <code>next_loop</code> function of the <code>LoopCycler</code> module (omitted here for brevity) [<a href="https://github.com/jeffcole/loops_with_friends/blob/back-end-blog-posts/lib/loops_with_friends/loop_cycler.ex">source</a> | <a href="https://github.com/jeffcole/loops_with_friends/blob/back-end-blog-posts/test/lib/loops_with_friends/loop_cycler_test.exs">test</a>] handles this responsibility. In our channel's <code>join</code> function, we pass <code>next_loop</code> the loops that have already been taken, and include the result in the metadata tracked by <code>Presence</code>. Determining the already taken loops from the current presence list is handled by a helper function added to the <code>Presence</code> module [<a href="https://github.com/jeffcole/loops_with_friends/blob/back-end-blog-posts/web/channels/presence.ex#L78">source</a> | <a href="https://github.com/jeffcole/loops_with_friends/blob/back-end-blog-posts/test/channels/presence_test.exs">test</a>].</p>
+
+<pre class="highlight elixir"><code><span class="c1"># web/channels/jam_channel.ex</span>&#x000A;<span class="k">defmodule</span> <span class="no">LoopsWithFriends</span><span class="o">.</span><span class="no">JamChannel</span> <span class="k">do</span>&#x000A;  <span class="c1"># ...</span>&#x000A;&#x000A;  <span class="k">def</span> <span class="n">join</span><span class="p">(</span><span class="sd">"</span><span class="s2">jams:"</span> <span class="o">&lt;&gt;</span> <span class="n">jam_id</span><span class="p">,</span> <span class="n">_params</span><span class="p">,</span> <span class="n">socket</span><span class="p">)</span> <span class="k">do</span>&#x000A;    <span class="no">Presence</span><span class="o">.</span><span class="n">track</span><span class="p">(</span><span class="n">socket</span><span class="p">,</span> <span class="n">socket</span><span class="o">.</span><span class="n">assigns</span><span class="o">.</span><span class="n">user_id</span><span class="p">,</span> <span class="p">%{</span>&#x000A;      <span class="ss">user_id:</span> <span class="n">socket</span><span class="o">.</span><span class="n">assigns</span><span class="o">.</span><span class="n">user_id</span><span class="p">,</span>&#x000A;      <span class="ss">loop_name:</span> <span class="no">LoopCycler</span><span class="o">.</span><span class="n">next_loop</span><span class="p">(</span><span class="n">present_loops</span><span class="p">(</span><span class="n">socket</span><span class="p">))</span>&#x000A;    <span class="p">})</span>&#x000A;&#x000A;    <span class="c1"># ...</span>&#x000A;  <span class="k">end</span>&#x000A;&#x000A;  <span class="k">defp</span> <span class="n">present_loops</span><span class="p">(</span><span class="n">socket</span><span class="p">)</span> <span class="k">do</span>&#x000A;    <span class="n">socket</span>&#x000A;    <span class="o">|&gt;</span> <span class="no">Presence</span><span class="o">.</span><span class="n">list</span>&#x000A;    <span class="o">|&gt;</span> <span class="no">Presence</span><span class="o">.</span><span class="n">extract_loops</span>&#x000A;  <span class="k">end</span>&#x000A;<span class="k">end</span>&#x000A;</code></pre>
+<p>Adding the loop name to the users's presence is also how the client get's notified of their loop.</p>
+
+<h2 id="handling-events">Handling Events</h2>
+
+<p>When users join, leave, play their loop, or stop their loop, the other users in the jam need to know about it. Phoenix Channels leverage Elixir OTP-style callbacks to handle client events. Once more in the <code>JamChannel</code> module [<a href="https://github.com/jeffcole/loops_with_friends/blob/back-end-blog-posts/web/channels/jam_channel.ex">source</a> | <a href="https://github.com/jeffcole/loops_with_friends/blob/back-end-blog-posts/test/channels/jam_channel_test.exs">test</a>], we are using <code>handle_info</code> and <code>handle_in</code> callbacks to notify users of joins and plays/stops, respectively. The <code>handle_info</code> callback gets invoked by sending the message <code>:after_join</code> to our channel process, so that we can push out the <code>presence_state</code> notification asynchronously from allowing our user to finish their join.</p>
+
+<pre class="highlight elixir"><code><span class="c1"># web/channels/jam_channel.ex</span>&#x000A;<span class="k">defmodule</span> <span class="no">LoopsWithFriends</span><span class="o">.</span><span class="no">JamChannel</span> <span class="k">do</span>&#x000A;  <span class="c1"># ...</span>&#x000A;&#x000A;  <span class="k">def</span> <span class="n">join</span><span class="p">(</span><span class="sd">"</span><span class="s2">jams:"</span> <span class="o">&lt;&gt;</span> <span class="n">jam_id</span><span class="p">,</span> <span class="n">_params</span><span class="p">,</span> <span class="n">socket</span><span class="p">)</span> <span class="k">do</span>&#x000A;    <span class="c1"># ...</span>&#x000A;&#x000A;    <span class="n">send</span> <span class="n">self</span><span class="p">(),</span> <span class="ss">:after_join</span>&#x000A;&#x000A;    <span class="c1"># ...</span>&#x000A;  <span class="k">end</span>&#x000A;&#x000A;  <span class="k">def</span> <span class="n">handle_info</span><span class="p">(</span><span class="ss">:after_join</span><span class="p">,</span> <span class="n">socket</span><span class="p">)</span> <span class="k">do</span>&#x000A;    <span class="n">push</span> <span class="n">socket</span><span class="p">,</span> <span class="sd">"</span><span class="s2">presence_state"</span><span class="p">,</span> <span class="no">Presence</span><span class="o">.</span><span class="n">list</span><span class="p">(</span><span class="n">socket</span><span class="p">)</span>&#x000A;&#x000A;    <span class="p">{</span><span class="ss">:noreply</span><span class="p">,</span> <span class="n">socket</span><span class="p">}</span>&#x000A;  <span class="k">end</span>&#x000A;&#x000A;  <span class="k">def</span> <span class="n">handle_in</span><span class="p">(</span>&#x000A;    <span class="sd">"</span><span class="s2">loop:"</span> <span class="o">&lt;&gt;</span> <span class="n">event</span><span class="p">,</span>&#x000A;    <span class="p">%{</span><span class="sd">"</span><span class="s2">user_id"</span> <span class="o">=&gt;</span> <span class="n">user_id</span><span class="p">},</span> <span class="n">socket</span>&#x000A;  <span class="p">)</span> <span class="k">do</span>&#x000A;    <span class="n">broadcast!</span> <span class="n">socket</span><span class="p">,</span> <span class="sd">"</span><span class="s2">loop:</span><span class="si">#{</span><span class="n">event</span><span class="si">}</span><span class="s2">"</span><span class="p">,</span> <span class="p">%{</span><span class="ss">user_id:</span> <span class="n">user_id</span><span class="p">}</span>&#x000A;&#x000A;    <span class="p">{</span><span class="ss">:noreply</span><span class="p">,</span> <span class="n">socket</span><span class="p">}</span>&#x000A;  <span class="k">end</span>&#x000A;&#x000A;  <span class="c1"># ...</span>&#x000A;<span class="k">end</span>&#x000A;</code></pre>
+<p>A user leaving a jam is propagated out to all clients in the channel automatically by Phoenix via a <code>presence_diff</code> message.</p>
+
+<h2 id="up-next">Up Next</h2>
+
+<p>We've got our server application set up so that users can join a jam, see other users, get their loop, and send and receive loop events across the jam.</p>
+
+<p>We'll run into problems, however, once our little app goes viral and there are a million users in a single jam. In the <a href="../talk-to-my-elixir-agent/">next post</a>, we'll see how to make sure that we can handle more than seven users blissfully jamming away.</p>
+
+
+<div class='share'><a href="http://twitter.com/home?status=Read+%27Jamming+with+Phoenix+Presence%27+%40obscurehobo+https%3A%2F%2Fjeffcole.github.io%2Fjamming-with-phoenix-presence%2F" target="_blank"><img src="../assets/images/icons/twitter.svg" alt="Twitter" /><span>Tweet This</span></a></div>
+</article>
+
+</main>
+<footer>
+<a class='home' href='/' title='Home'>Home</a>
+<p class='contact'>
+<a href="https://github.com/jeffcole"><i class='fa fa-fw fa-2x fa-github' title='GitHub'></i>
+</a><a href="https://www.linkedin.com/in/jeffreydcole"><i class='fa fa-fw fa-2x fa-linkedin' title='LinkedIn'></i>
+</a><a href="https://twitter.com/obscurehobo"><i class='fa fa-fw fa-2x fa-twitter' title='Twitter'></i>
+</a><a href="mailto:jeffreydonaldcole@gmail.com"><i class='fa fa-fw fa-2x fa-envelope' title='Email'></i>
+</a></p>
+
+<p>© 2016–present Jeff Cole</p>
+</footer>
+<script src="../assets/javascripts/application.js"></script>
+</body>
+</html>
