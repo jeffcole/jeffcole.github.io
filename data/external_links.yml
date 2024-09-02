@@ -1,29 +1,9 @@
 practices_and_tools:
-  date: '2019-07-09'
+  date: "2019-07-09"
   title: "Practices and Tools that Make for a Good Project"
-  url: 'https://www.mojotech.com/blog/good-software-project'
+  url: "https://www.mojotech.com/blog/good-software-project"
 
 ecto_well_designed:
-  date: '2017-10-30'
+  date: "2017-10-30"
   title: "How Elixir's Ecto Promotes Well-Designed Applications"
-  url: 'https://www.mojotech.com/blog/how-elixir-ecto-promotes-well-designed-applications'
-
-chrome_extensions:
-  date: '2016-05-16'
-  title: 'Making Chrome Extensions is Easy with Yeoman'
-  url: 'https://www.foraker.com/blog/making-chrome-extensions-with-yeoman'
-
-repositories:
-  date: '2016-02-05'
-  title: 'The Quest for Simple Active Record Repositories'
-  url: 'https://www.foraker.com/blog/the-quest-for-simple-active-record-repositories'
-
-ddd:
-  date: '2015-07-24'
-  title: 'Domain-Driven Design'
-  url: 'https://www.foraker.com/blog/domain-driven-design'
-
-dotfiles:
-  date: '2015-03-06'
-  title: 'Get Your Dotfiles Under Control'
-  url: 'https://www.foraker.com/blog/get-your-dotfiles-under-control'
+  url: "https://www.mojotech.com/blog/how-elixir-ecto-promotes-well-designed-applications"

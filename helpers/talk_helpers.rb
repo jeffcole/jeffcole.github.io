@@ -22,7 +22,9 @@ module TalkHelpers
   end
 
   def talk_slides(occurence)
-    link_to "Slides", occurence.slides_url
+    if occurence.slides_url
+      link_to "Slides", occurence.slides_url
+    end
   end
 
   def talk_video(occurence)

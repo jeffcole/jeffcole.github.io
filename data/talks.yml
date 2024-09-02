@@ -1,19 +1,18 @@
 well_designed_phoenix_applications:
-  title: 'Well-Designed Phoenix Applications'
+  title: "Well-Designed Phoenix Applications"
   occurrences:
-    - date: '2017-10-03'
-      event_name: 'Boulder Elixir Meetup'
-      event_url: 'https://www.meetup.com/boulder-elixir/events/237761569/'
-      venue_name: 'MojoTech'
-      venue_url: 'https://www.mojotech.com'
-      slides_url: 'https://gitpitch.com/jeffcole/well-designed-phoenix-apps-talk'
-      
+    - date: "2017-10-03"
+      event_name: "Boulder Elixir Meetup"
+      event_url: "https://www.meetup.com/boulder-elixir/events/237761569/"
+      venue_name: "MojoTech"
+      venue_url: "https://www.mojotech.com"
+
 intro_to_phoenix:
-  title: 'Intro to Phoenix'
+  title: "Intro to Phoenix"
   occurrences:
-    - date: '2016-12-06'
-      event_name: 'Boulder Elixir Meetup'
-      event_url: 'https://www.meetup.com/boulder-elixir/events/235110695'
-      venue_name: 'MojoTech'
-      venue_url: 'https://www.mojotech.com'
-      slides_url: 'https://docs.google.com/presentation/d/1C3yGW34D0VnPv9gHQXfVZ19WhImg9OOQEHDUVlks9po'
+    - date: "2016-12-06"
+      event_name: "Boulder Elixir Meetup"
+      event_url: "https://www.meetup.com/boulder-elixir/events/235110695"
+      venue_name: "MojoTech"
+      venue_url: "https://www.mojotech.com"
+      slides_url: "https://docs.google.com/presentation/d/1C3yGW34D0VnPv9gHQXfVZ19WhImg9OOQEHDUVlks9po"
