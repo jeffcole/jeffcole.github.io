@@ -108,7 +108,7 @@ Installing the GitHub Codespaces extension will provide the **Codespaces: Create
   VS Code for the Web running in a codespace
 </p>
 
-Opening the terminal within VS Code provides access to the tooling installed via our configuration files. With Elixir, Rebar, and Hex available, we can run the following to create a new Phoenix project within the Codespace.
+Opening the terminal within VS Code provides access to the tooling installed via our configuration files. With Elixir, Rebar, and Hex available, we can run the following to create a new Phoenix project within the codespace.
 
 ~~~ sh
 mix archive.install phx_new
@@ -134,7 +134,7 @@ Check out the [jeffcole/localless] repository on GitHub for a reference to the p
 
 I probably won't be ditching my Mac for a Chromebook anytime soon. However this experiment shows what is possible today without needing to have the software that runs your app on your local computer.
 
-Ultimately, the goal is to move toward processes that have fewer moving parts — and thus opportunities to fail — and distract the fastest moving software teams from building value.
+Ultimately, the goal is to move toward processes that have fewer moving parts, and thus opportunities to fail, to keep from distracting the fastest moving software teams from building value.
 
 [GitHub Codespaces]: https://github.com/features/codespaces
 [Gitpod]: https://www.gitpod.io/
