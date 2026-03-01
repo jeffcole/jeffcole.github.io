@@ -1,5 +1,4 @@
 activate :autoprefixer
-activate :pry
 activate :syntax
 
 set :relative_links, true

@@ -13,7 +13,7 @@ asdf install
 Install the version of Bundler [used to bundle gems]:
 
 ```sh
-gem install bundler -v '1.13.7'
+gem install bundler -v '2.6.9'
 ```
 
 Install dependencies:
